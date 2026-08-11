@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Batch Students - Admin</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f9; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .back-btn { background: #6c757d; color: white; padding: 8px 15px; text-decoration: none; border-radius: 4px; }
+        .form-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 15px; }
+        input[type="text"] { padding: 10px; border: 1px solid #ccc; border-radius: 4px; width: 90%; }
+        button { cursor: pointer; background: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 4px; font-weight: bold; }
+        button:hover { background: #0056b3; }
+        table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background-color: #007bff; color: white; }
+        .upload-btn { background: #28a745; padding: 5px 10px; font-size: 12px; border: none; cursor: pointer; border-radius: 4px; margin-top: 5px;}
+        .marks-btn { background: #ffc107; padding: 5px 10px; font-size: 12px; color: black; border: none; cursor: pointer; border-radius: 4px; margin-top: 5px;}
+        .delete-btn { background: #dc3545; color: white; border: none; padding: 5px 10px; font-size: 12px; border-radius: 4px; margin-top: 5px; cursor: pointer; }
+        .delete-btn:hover { background: #c82333; }
+        
+        /* Modal Config */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        .modal-content { background: white; max-width: 900px; margin: 50px auto; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); overflow-x: auto; }
+        .close-btn { background: #dc3545; margin-top: 15px; }
+        .save-marks-btn { background: #28a745; width: 100%; font-size: 16px; margin-top: 15px; }
+        
+        /* Modal Inner Table */
+        #marksInputTable { width: 100%; border-collapse: collapse; text-align: center; font-size: 13px; }
+        #marksInputTable th { background: #343a40; color: white; padding: 10px; }
+        #marksInputTable td { padding: 5px; }
+        .grid-input { width: 60px; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 3px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2 id="batchTitle">Loading Batch...</h2>
+        <a href="/" class="back-btn">← Back to Batches</a>
+    </div>
+
+    <div class="form-container">
+        <h3>Add New Student</h3>
+        <form id="studentForm">
+            <div class="form-grid">
+                <input type="text" id="rollNo" placeholder="Roll No (Required)" required>
+                <input type="text" id="name" placeholder="Student Name (Required)" required>
+                <input type="text" id="idNo" placeholder="ID No">
+                <input type="text" id="courseName" placeholder="Course Name">
+                <input type="text" id="mobileNo" placeholder="Mobile No">
+                <input type="text" id="programOpted" placeholder="Program Opted">
+                <input type="text" id="startDate" placeholder="Start Date">
+                <input type="text" id="endDate" placeholder="End Date">
+            </div>
+            <button type="submit">Save Student Record</button>
+        </form>
+    </div>
+
+    <h3>Student List</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Roll No</th>
+                <th>Name</th>
+                <th>Course</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="studentsTableBody">
+            <tr><td colspan="4">Loading students...</td></tr>
+        </tbody>
+    </table>
+
+    <input type="file" id="fileInput" style="display: none;" accept=".pdf, .jpg, .jpeg, .png">
+
+    <!-- Advanced Marks Modal (54 Matrix) -->
+    <div id="marksModal" class="modal">
+        <div class="modal-content">
+            <h3>Update Academic Marks Matrix</h3>
+            <table id="marksInputTable">
+                <!-- JS Inject -->
+            </table>
+            <button class="save-marks-btn" onclick="submitMarks()">Save All Marks to Database</button>
+            <button class="close-btn" onclick="closeMarksModal()">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('adminToken');
+        if (!token) window.location.href = '/admin-login.html';
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const batchId = urlParams.get('batchId');
+        if (!batchId) window.location.href = '/';
+        document.getElementById('batchTitle').innerText = `Students of ${urlParams.get('batchName')}`;
+        
+        const units = ['u1', 'u2', 'u3', 'u4', 'u5', 'f'];
+        const unitLabels = ['Unit 1', 'Unit 2', 'Unit 3', 'Unit 4', 'Unit 5', 'Final'];
+        const techs = ['gis', 'rs', 'lidar', 'pht', 'drone', 'gps', 'webgis', 'geoai', 'python'];
+
+        function buildMarksGrid() {
+            let tableHtml = `<tr><th>Unit / Tech</th>`;
+            techs.forEach(t => tableHtml += `<th>${t.toUpperCase()}</th>`);
+            tableHtml += `</tr>`;
+
+            units.forEach((u, i) => {
+                tableHtml += `<tr><td style="font-weight:bold; text-align:left;">${unitLabels[i]}</td>`;
+                techs.forEach(t => {
+                    tableHtml += `<td><input type="number" class="grid-input" id="input_${u}_${t}"></td>`;
+                });
+                tableHtml += `</tr>`;
+            });
+            document.getElementById('marksInputTable').innerHTML = tableHtml;
+        }
+        buildMarksGrid();
+
+        window.onload = loadStudents;
+        let studentsData = [];
+
+        async function loadStudents() {
+            try {
+                const response = await fetch(`/api/students/${batchId}`);
+                studentsData = await response.json();
+                const tbody = document.getElementById('studentsTableBody');
+                tbody.innerHTML = '';
+
+                if (studentsData.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4">No students found.</td></tr>';
+                    return;
+                }
+
+                studentsData.forEach(student => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${student.rollNo}</td>
+                        <td>${student.name}</td>
+                        <td>${student.courseName || '-'}</td>
+                        <td>
+                            <button class="marks-btn" onclick="openMarksModal('${student._id}')">Update Marks</button>
+                            <button class="upload-btn" onclick="uploadMarksheet('${student._id}')">Upload PDF</button>
+                            <button style="background:#6c757d; color:white; border:none; padding:5px 10px; font-size:12px; border-radius:4px; margin-top:5px; cursor:pointer;" onclick="resetStudentPassword('${student._id}')">Reset Pass</button>
+                            <button class="delete-btn" onclick="deleteStudent('${student._id}')">Delete</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (error) { console.error(error); }
+        }
+
+        document.getElementById('studentForm').onsubmit = async (e) => {
+            e.preventDefault(); 
+            const sData = {
+                batchId: batchId,
+                rollNo: document.getElementById('rollNo').value,
+                name: document.getElementById('name').value,
+                idNo: document.getElementById('idNo').value,
+                courseName: document.getElementById('courseName').value,
+                mobileNo: document.getElementById('mobileNo').value,
+                programOpted: document.getElementById('programOpted').value,
+                startDate: document.getElementById('startDate').value,
+                endDate: document.getElementById('endDate').value
+            };
+            try {
+                const response = await fetch('/api/add-student', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(sData)
+                });
+                if (response.ok) { document.getElementById('studentForm').reset(); loadStudents(); } 
+                else alert((await response.json()).error);
+            } catch (error) { alert("Server connection error"); }
+        };
+
+        let currentStudentId = null;
+        function uploadMarksheet(studentId) {
+            currentStudentId = studentId;
+            document.getElementById('fileInput').click(); 
+        }
+
+        document.getElementById('fileInput').onchange = async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('marksheet', file); 
+            
+            try {
+                const response = await fetch(`/api/upload-marksheet/${currentStudentId}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData 
+                });
+                if (response.ok) alert("Upload successful!");
+                else alert("Upload failed");
+            } catch (error) { alert("Upload error"); }
+            e.target.value = ''; 
+        };
+
+        // Reset Password Logic
+        async function resetStudentPassword(studentId) {
+            if (!confirm("Are you sure? Is student ka password wapas iske Roll No par reset ho jayega.")) return;
+            try {
+                const response = await fetch(`/api/admin/reset-password/${studentId}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const result = await response.json();
+                alert(result.message || result.error);
+            } catch (error) {
+                alert("Server Error");
+            }
+        }
+
+        // Delete Individual Student Logic
+        async function deleteStudent(studentId) {
+            if (!confirm("Kya aap sach mein is student ka record permanently delete karna chahte hain?")) return;
+
+            try {
+                const response = await fetch(`/api/delete-student/${studentId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const result = await response.json();
+                if (response.ok) {
+                    loadStudents(); 
+                } else {
+                    alert(result.error);
+                }
+            } catch (error) {
+                alert("Server error connecting to delete API.");
+            }
+        }
+
+        let targetMarksStudentId = null;
+        function openMarksModal(studentId) {
+            targetMarksStudentId = studentId;
+            const student = studentsData.find(s => s._id === studentId);
+            
+            units.forEach(u => {
+                techs.forEach(t => {
+                    const dbKey = `${u}_${t}`;
+                    const val = (student && student.marks && student.marks.get && student.marks.get(dbKey) !== undefined) ? student.marks.get(dbKey) : ((student && student.marks && student.marks[dbKey] !== undefined) ? student.marks[dbKey] : '');
+                    document.getElementById(`input_${u}_${t}`).value = val;
+                });
+            });
+            document.getElementById('marksModal').style.display = 'block';
+        }
+
+        function closeMarksModal() {
+            document.getElementById('marksModal').style.display = 'none';
+        }
+
+        async function submitMarks() {
+            let marksPayload = {};
+            units.forEach(u => {
+                techs.forEach(t => {
+                    const val = document.getElementById(`input_${u}_${t}`).value;
+                    marksPayload[`${u}_${t}`] = Number(val) || 0;
+                });
+            });
+
+            try {
+                const response = await fetch(`/api/update-marks/${targetMarksStudentId}`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ marks: marksPayload })
+                });
+                
+                if (response.ok) {
+                    alert("Marks Saved!");
+                    loadStudents(); 
+                    closeMarksModal();
+                } else {
+                    alert("Failed to update marks");
+                }
+            } catch (error) {
+                alert("Server Error");
+            }
+        }
+    </script>
+</body>
+</html>

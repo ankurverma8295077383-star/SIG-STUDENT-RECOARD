@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - Skyline Institute</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 300px; text-align: center; border-top: 4px solid #007bff; }
+        input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background: #007bff; color: white; border: none; padding: 10px; width: 100%; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        button:hover { background: #0056b3; }
+        .error { color: red; font-size: 14px; margin-top: 10px; display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <h2>Admin Login</h2>
+        <input type="text" id="username" placeholder="Enter Username (e.g., admin)">
+        <input type="password" id="password" placeholder="Enter Password (e.g., admin123)">
+        <button onclick="loginAdmin()">Login securely</button>
+        <div id="errorMsg" class="error"></div>
+    </div>
+
+    <script>
+        // Agar pehle se login hai, toh direct home page par bhej do
+        if(localStorage.getItem('adminToken')) {
+            window.location.href = '/';
+        }
+
+        async function loginAdmin() {
+            const usernameInput = document.getElementById('username').value;
+            const passwordInput = document.getElementById('password').value;
+            const errorMsg = document.getElementById('errorMsg');
+            
+            errorMsg.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: usernameInput, password: passwordInput })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    // Token ko browser ke localStorage mein save karna
+                    localStorage.setItem('adminToken', result.token);
+                    // Login successful hote hi main dashboard par bhej do
+                    window.location.href = '/';
+                } else {
+                    errorMsg.innerText = result.error;
+                    errorMsg.style.display = 'block';
+                }
+            } catch (error) {
+                errorMsg.innerText = "Server error! Cannot connect.";
+                errorMsg.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>

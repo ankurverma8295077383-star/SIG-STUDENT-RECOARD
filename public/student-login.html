@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Login - Skyline Institute</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 300px; text-align: center; border-top: 4px solid #28a745; }
+        input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background: #28a745; color: white; border: none; padding: 10px; width: 100%; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        button:hover { background: #218838; }
+        .error { color: red; font-size: 14px; margin-top: 10px; display: none; }
+        .success { color: green; font-size: 14px; margin-top: 10px; display: none; }
+        .link { color: #007bff; font-size: 13px; text-decoration: none; cursor: pointer; display: block; margin-top: 15px; }
+        .link:hover { text-decoration: underline; }
+        #changePasswordSection { display: none; margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <!-- Default Login Section -->
+        <div id="loginSection">
+            <h2>Student Login</h2>
+            <input type="text" id="rollNo" placeholder="Enter Roll No">
+            <input type="password" id="password" placeholder="Enter Password">
+            <button onclick="loginStudent()">Login to Portal</button>
+            <span class="link" onclick="toggleChangePassword()">Change Password</span>
+            <div id="loginErrorMsg" class="error"></div>
+        </div>
+
+        <!-- Change Password Section -->
+        <div id="changePasswordSection">
+            <h3>Change Password</h3>
+            <p style="font-size: 12px; color: gray;">Purana password verify karke naya set karein.</p>
+            <input type="text" id="cpRollNo" placeholder="Enter Roll No">
+            <input type="password" id="cpOldPassword" placeholder="Enter Old Password">
+            <input type="password" id="cpNewPassword" placeholder="Enter New Password">
+            <button onclick="changePassword()" style="background: #007bff;">Update Password</button>
+            <span class="link" onclick="toggleChangePassword()">Back to Login</span>
+            <div id="cpMsg" class="error"></div>
+        </div>
+    </div>
+
+    <script>
+        if(localStorage.getItem('studentToken')) window.location.href = '/student-dashboard.html';
+
+        function toggleChangePassword() {
+            const loginSec = document.getElementById('loginSection');
+            const changeSec = document.getElementById('changePasswordSection');
+            if (loginSec.style.display === 'none') {
+                loginSec.style.display = 'block';
+                changeSec.style.display = 'none';
+            } else {
+                loginSec.style.display = 'none';
+                changeSec.style.display = 'block';
+            }
+        }
+
+        async function loginStudent() {
+            const rollNoInput = document.getElementById('rollNo').value;
+            const passwordInput = document.getElementById('password').value;
+            const errorMsg = document.getElementById('loginErrorMsg');
+            errorMsg.style.display = 'none';
+
+            if (!rollNoInput || !passwordInput) {
+                errorMsg.innerText = "Roll No aur Password zaroori hain.";
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/student/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rollNo: rollNoInput, password: passwordInput })
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    localStorage.setItem('studentToken', result.token);
+                    window.location.href = '/student-dashboard.html';
+                } else {
+                    errorMsg.innerText = result.error;
+                    errorMsg.style.display = 'block';
+                }
+            } catch (error) {
+                errorMsg.innerText = "Server error!";
+                errorMsg.style.display = 'block';
+            }
+        }
+
+        async function changePassword() {
+            const rollNo = document.getElementById('cpRollNo').value;
+            const oldPassword = document.getElementById('cpOldPassword').value;
+            const newPassword = document.getElementById('cpNewPassword').value;
+            const msgBox = document.getElementById('cpMsg');
+            
+            msgBox.className = 'error';
+            msgBox.style.display = 'none';
+
+            if (!rollNo || !oldPassword || !newPassword) {
+                msgBox.innerText = "Sabhi fields bharna zaroori hai.";
+                msgBox.style.display = 'block';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/student/change-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rollNo, oldPassword, newPassword })
+                });
+                const result = await response.json();
+                
+                if (response.ok) {
+                    msgBox.className = 'success';
+                    msgBox.innerText = result.message;
+                    msgBox.style.display = 'block';
+                    setTimeout(toggleChangePassword, 2000); 
+                } else {
+                    msgBox.innerText = result.error;
+                    msgBox.style.display = 'block';
+                }
+            } catch (error) {
+                msgBox.innerText = "Server error!";
+                msgBox.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>

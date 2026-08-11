@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - Skyline Institute</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 20px; margin: 0; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: #28a745; color: white; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; }
+        .logout-btn { background: #dc3545; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .logout-btn:hover { background: #c82333; }
+        .dashboard-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); max-width: 900px; margin: 0 auto; }
+        .info-group { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #eee; }
+        .info-group strong { display: inline-block; width: 150px; color: #555; }
+        
+        /* Marks Table Styles */
+        .marks-container { margin-top: 25px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; text-align: center; }
+        th, td { border: 1px solid #ddd; padding: 10px; }
+        th { background-color: #007bff; color: white; }
+        .row-header { text-align: left; font-weight: bold; background-color: #f8f9fa; }
+        .total-row td { font-weight: bold; background-color: #e9ecef; }
+
+        .marksheet-section { text-align: center; margin-top: 25px; padding-top: 20px; border-top: 2px dashed #ccc; }
+        .download-btn { background: #28a745; color: white; padding: 14px 28px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block; font-size: 16px; }
+        .download-btn:hover { background: #218838; }
+        .no-marksheet { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2>Welcome, <span id="studentName">Student</span></h2>
+        <button class="logout-btn" onclick="logoutStudent()">Logout</button>
+    </div>
+
+    <div class="dashboard-card">
+        <h3>Your Profile Details</h3>
+        <div class="info-group"><strong>Roll No:</strong> <span id="rollNo">...</span></div>
+        <div class="info-group"><strong>ID No:</strong> <span id="idNo">...</span></div>
+        <div class="info-group"><strong>Course:</strong> <span id="courseName">...</span></div>
+        <div class="info-group"><strong>Mobile:</strong> <span id="mobileNo">...</span></div>
+        <div class="info-group"><strong>Batch Duration:</strong> <span id="duration">...</span></div>
+
+        <div class="marks-container">
+            <h3>Academic Performance</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="text-align: left;">Technology / Unit</th>
+                        <th>GIS</th><th>RS</th><th>LiDAR</th><th>PHT</th><th>Drone</th><th>GPS</th><th>WebGIS</th><th>GeoAI</th><th>Python</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="row-header">Unit 1: Basics</td>
+                        <td id="u1-gis">0</td><td id="u1-rs">0</td><td id="u1-lidar">0</td><td id="u1-pht">0</td><td id="u1-drone">0</td><td id="u1-gps">0</td><td id="u1-webgis">0</td><td id="u1-geoai">0</td><td id="u1-python">0</td>
+                    </tr>
+                    <tr>
+                        <td class="row-header">Unit 2: Spatial Data</td>
+                        <td id="u2-gis">0</td><td id="u2-rs">0</td><td id="u2-lidar">0</td><td id="u2-pht">0</td><td id="u2-drone">0</td><td id="u2-gps">0</td><td id="u2-webgis">0</td><td id="u2-geoai">0</td><td id="u2-python">0</td>
+                    </tr>
+                    <tr>
+                        <td class="row-header">Unit 3: Analysis</td>
+                        <td id="u3-gis">0</td><td id="u3-rs">0</td><td id="u3-lidar">0</td><td id="u3-pht">0</td><td id="u3-drone">0</td><td id="u3-gps">0</td><td id="u3-webgis">0</td><td id="u3-geoai">0</td><td id="u3-python">0</td>
+                    </tr>
+                    <tr>
+                        <td class="row-header">Unit 4: Earth Engine</td>
+                        <td id="u4-gis">0</td><td id="u4-rs">0</td><td id="u4-lidar">0</td><td id="u4-pht">0</td><td id="u4-drone">0</td><td id="u4-gps">0</td><td id="u4-webgis">0</td><td id="u4-geoai">0</td><td id="u4-python">0</td>
+                    </tr>
+                    <tr>
+                        <td class="row-header">Unit 5: Cloud Arch</td>
+                        <td id="u5-gis">0</td><td id="u5-rs">0</td><td id="u5-lidar">0</td><td id="u5-pht">0</td><td id="u5-drone">0</td><td id="u5-gps">0</td><td id="u5-webgis">0</td><td id="u5-geoai">0</td><td id="u5-python">0</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td class="row-header">Final Exam</td>
+                        <td id="f-gis">0</td><td id="f-rs">0</td><td id="f-lidar">0</td><td id="f-pht">0</td><td id="f-drone">0</td><td id="f-gps">0</td><td id="f-webgis">0</td><td id="f-geoai">0</td><td id="f-python">0</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="marksheet-section" id="marksheetSection">
+            <p>Loading your result status...</p>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('studentToken');
+        if (!token) window.location.href = '/student-login.html';
+
+        function logoutStudent() {
+            localStorage.removeItem('studentToken');
+            window.location.href = '/student-login.html';
+        }
+
+        window.onload = async function() {
+            try {
+                const response = await fetch('/api/student/profile', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const student = await response.json();
+
+                if (response.ok) {
+                    // Profile Data
+                    document.getElementById('studentName').innerText = student.name;
+                    document.getElementById('rollNo').innerText = student.rollNo;
+                    document.getElementById('idNo').innerText = student.idNo || 'N/A';
+                    document.getElementById('courseName').innerText = student.courseName || 'N/A';
+                    document.getElementById('mobileNo').innerText = student.mobileNo || 'N/A';
+                    document.getElementById('duration').innerText = `${student.startDate || '-'} to ${student.endDate || '-'}`;
+
+                    // Dynamic Marks Mapping (54 Data Points)
+                    if (student.marks) {
+                        const units = ['u1', 'u2', 'u3', 'u4', 'u5', 'f'];
+                        const techs = ['gis', 'rs', 'lidar', 'pht', 'drone', 'gps', 'webgis', 'geoai', 'python'];
+                        
+                        units.forEach(unit => {
+                            techs.forEach(tech => {
+                                const htmlId = `${unit}-${tech}`;
+                                const dbKey = `${unit}_${tech}`; 
+                                const element = document.getElementById(htmlId);
+                                if (element) {
+                                    let val = 0;
+                                    if (student.marks instanceof Map || typeof student.marks.get === 'function') {
+                                        val = student.marks.get(dbKey) || 0;
+                                    } else {
+                                        val = student.marks[dbKey] || 0;
+                                    }
+                                    element.innerText = val;
+                                }
+                            });
+                        });
+                    }
+
+                    // Direct Download Marksheet Option
+                    const marksheetSec = document.getElementById('marksheetSection');
+                    if (student.marksheetUrl) {
+                        marksheetSec.innerHTML = `
+                            <h3>Your Final Result Marksheet</h3>
+                            <div style="margin: 15px 0;">
+                                <a href="${student.marksheetUrl}" target="_blank" download class="download-btn">📥 Download Marksheet PDF</a>
+                            </div>
+                        `;
+                    } else {
+                        marksheetSec.innerHTML = `<p class="no-marksheet">Marksheet not uploaded yet. Please contact administration.</p>`;
+                    }
+                } else {
+                    alert(student.error || "Session expired.");
+                    logoutStudent();
+                }
+            } catch (error) {
+                alert("Error loading profile.");
+            }
+        };
+    </script>
+</body>
+</html>
