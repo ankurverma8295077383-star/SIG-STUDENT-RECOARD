@@ -10,6 +10,9 @@ const Student = require('./models/Student');
 const Admin = require('./models/Admin');
 const upload = require('./upload'); // Cloudinary upload setup
 
+// Vault Routes Import (Naya Addition)
+const vaultRoutes = require('./routes/vault');
+
 const app = express();
 app.use(express.json()); // JSON data accept karne ke liye
 app.use(express.static('public')); // Frontend folder ko host karne ke liye 
@@ -88,7 +91,6 @@ app.get('/api/get-batches', async (req, res) => {
 // 3. Naya Student Add karne ka API (Secured)
 app.post('/api/add-student', authenticateAdmin, async (req, res) => {
     try {
-        // Naya student banate waqt uska default password (Roll No) encrypt karke save karna
         const hashedPassword = await bcrypt.hash(req.body.rollNo, 10);
         
         const studentData = {
@@ -135,6 +137,26 @@ app.post('/api/upload-marksheet/:studentId', authenticateAdmin, upload.single('m
     }
 });
 
+// 6. Update Student Marks API (Secured for 54 Data Points)
+app.post('/api/update-marks/:studentId', authenticateAdmin, async (req, res) => {
+    try {
+        await Student.findByIdAndUpdate(
+            req.params.studentId,
+            { marks: req.body.marks },
+            { new: true }
+        );
+        res.status(200).json({ message: "Marks successfully updated" });
+    } catch (error) {
+        res.status(500).json({ error: "Marks update fail ho gaye" });
+    }
+});
+
+// ==========================================
+// VAULT APIs (PDF Uploads & Management)
+// ==========================================
+// Naye Vault Routes ko connect karna aur Admin authentication lagana
+app.use('/api/vault', authenticateAdmin, vaultRoutes);
+
 
 // ==========================================
 // STUDENT SECURITY MIDDLEWARE
@@ -178,7 +200,6 @@ app.post('/api/student/login', async (req, res) => {
 // 2. Student Profile & Result Fetch API (Secured)
 app.get('/api/student/profile', authenticateStudent, async (req, res) => {
     try {
-        // Password ko chhod kar baaki data bhejenge
         const student = await Student.findById(req.student.id).select('-password');
         if (!student) return res.status(404).json({ error: "Student record nahi mila" });
         
@@ -188,20 +209,6 @@ app.get('/api/student/profile', authenticateStudent, async (req, res) => {
     }
 });
 
-
-// 6. Update Student Marks API (Secured for 54 Data Points)
-app.post('/api/update-marks/:studentId', authenticateAdmin, async (req, res) => {
-    try {
-        await Student.findByIdAndUpdate(
-            req.params.studentId,
-            { marks: req.body.marks },
-            { new: true }
-        );
-        res.status(200).json({ message: "Marks successfully updated" });
-    } catch (error) {
-        res.status(500).json({ error: "Marks update fail ho gaye" });
-    }
-});
 
 // ==========================================
 // PASSWORD MANAGEMENT APIs
@@ -213,7 +220,6 @@ app.post('/api/admin/reset-password/:studentId', authenticateAdmin, async (req, 
         const student = await Student.findById(req.params.studentId);
         if (!student) return res.status(404).json({ error: "Student nahi mila" });
 
-        // Default password wapas Roll No ko bana do
         const hashedPassword = await bcrypt.hash(student.rollNo, 10);
         student.password = hashedPassword;
         await student.save();
@@ -268,10 +274,7 @@ app.delete('/api/delete-batch/:batchId', authenticateAdmin, async (req, res) => 
     try {
         const batchId = req.params.batchId;
         
-        // Pehle is batch ke saare students delete karo taaki database clean rahe
         await Student.deleteMany({ batchId: batchId });
-        
-        // Fir finally batch ko delete kar do
         await Batch.findByIdAndDelete(batchId);
         
         res.status(200).json({ message: "Batch aur uske saare students delete ho gaye." });
