@@ -45,7 +45,6 @@
     <div class="header">
         <h1>Admin Dashboard</h1>
         <div class="header-actions">
-            <!-- Injecting New Buttons Here -->
             <button class="btn-primary" onclick="openAnsModal()">Upload Answer Sheets</button>
             <button class="btn-purple" onclick="openManualMarksModal()">Upload Manual Marksheets</button>
             <button class="btn-primary" style="background:#17a2b8;" onclick="openVaultModal()">Manage Vault (View/Delete)</button>
@@ -244,7 +243,6 @@
             }
         }
 
-        // --- Injected Modal Logic ---
         function populateModalDropdowns() {
             let optionsHTML = '<option value="">-- Select a Batch --</option>';
             globalBatches.forEach(b => {
@@ -263,35 +261,76 @@
             document.getElementById('ansModal').style.display = 'none';
             document.getElementById('manualMarksModal').style.display = 'none';
             document.getElementById('vaultModal').style.display = 'none';
-            // Reset vault view on close
             document.getElementById('vaultFilesContainer').innerHTML = '<p style="color: gray; font-size: 14px;">Select a batch to view its uploaded files.</p>';
             document.getElementById('vaultBatchSelect').value = "";
         }
 
-        // Frontend submission handling (requires backend API connection next)
-        function uploadAnswerSheet() {
+        // ==========================================
+        // NEW ACTUAL UPLOAD LOGIC
+        // ==========================================
+        async function uploadAnswerSheet() {
             const batchId = document.getElementById('ansBatchSelect').value;
             const subject = document.getElementById('ansSubjectSelect').value;
             const unit = document.getElementById('ansUnitSelect').value;
-            const file = document.getElementById('ansFileInput').files[0];
+            const fileInput = document.getElementById('ansFileInput');
 
-            if(!batchId || !file) return alert("Please select a batch and attach a file!");
-            
-            console.log("Data ready to send to server:", {batchId, subject, unit, file});
-            alert("UI is ready. Next step: We need to write the backend API endpoint to handle this upload.");
+            if(!batchId || !fileInput.files[0]) return alert("Please select a batch and attach a file!");
+
+            const formData = new FormData();
+            formData.append('batchId', batchId);
+            formData.append('subject', subject);
+            formData.append('unit', unit);
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const response = await fetch('/api/vault/upload-ans', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }, // FormData automatically sets boundary
+                    body: formData
+                });
+                
+                if(response.ok) {
+                    alert("Answer Sheet Uploaded Successfully!");
+                    closeModals();
+                    fileInput.value = ''; // Reset input
+                } else {
+                    alert((await response.json()).error);
+                }
+            } catch(error) {
+                alert("Upload failed due to server error.");
+            }
         }
 
-        function uploadManualMarksheet() {
+        async function uploadManualMarksheet() {
             const batchId = document.getElementById('manualBatchSelect').value;
-            const file = document.getElementById('manualFileInput').files[0];
+            const fileInput = document.getElementById('manualFileInput');
             
-            if(!batchId || !file) return alert("Please select a batch and attach a file!");
+            if(!batchId || !fileInput.files[0]) return alert("Please select a batch and attach a file!");
 
-            console.log("Data ready to send to server:", {batchId, file});
-            alert("UI is ready. Next step: We need to write the backend API endpoint to handle this upload.");
+            const formData = new FormData();
+            formData.append('batchId', batchId);
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const response = await fetch('/api/vault/upload-marksheet', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                
+                if(response.ok) {
+                    alert("Marksheet Stored in Vault Successfully!");
+                    closeModals();
+                    fileInput.value = ''; // Reset input
+                } else {
+                    alert((await response.json()).error);
+                }
+            } catch(error) {
+                alert("Upload failed due to server error.");
+            }
         }
 
-        // --- Vault Logic ---
+        // --- Vault View & Delete Logic ---
         async function loadVaultFiles() {
             const batchId = document.getElementById('vaultBatchSelect').value;
             const container = document.getElementById('vaultFilesContainer');
