@@ -48,6 +48,7 @@
             <!-- Injecting New Buttons Here -->
             <button class="btn-primary" onclick="openAnsModal()">Upload Answer Sheets</button>
             <button class="btn-purple" onclick="openManualMarksModal()">Upload Manual Marksheets</button>
+            <button class="btn-primary" style="background:#17a2b8;" onclick="openVaultModal()">Manage Vault (View/Delete)</button>
             <button class="logout-btn" onclick="logoutAdmin()">Logout</button>
         </div>
     </div>
@@ -63,7 +64,7 @@
         <p>Loading batches...</p>
     </div>
 
-    <!-- Modal 1: Answer Sheets Upload (Replacing Regex logic with exact dropdowns) -->
+    <!-- Modal 1: Answer Sheets Upload -->
     <div id="ansModal" class="modal">
         <div class="modal-content">
             <h3>Upload Batch Answer Sheets</h3>
@@ -124,13 +125,32 @@
         </div>
     </div>
 
+    <!-- Modal 3: Vault Manager (View & Delete) -->
+    <div id="vaultModal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <h3>Vault Manager (Answer Sheets & Marksheets)</h3>
+            
+            <div class="form-group">
+                <label>Select Batch to View Files</label>
+                <select id="vaultBatchSelect" onchange="loadVaultFiles()">
+                    <option value="">-- Select a Batch --</option>
+                </select>
+            </div>
+
+            <div id="vaultFilesContainer" style="margin-top: 15px; border-top: 1px solid #ccc; padding-top: 15px;">
+                <p style="color: gray; font-size: 14px;">Select a batch to view its uploaded files.</p>
+            </div>
+
+            <button class="logout-btn" style="margin-top:20px;" onclick="closeModals()">Close</button>
+        </div>
+    </div>
+
     <script>
         const token = localStorage.getItem('adminToken');
         if (!token) {
             window.location.href = '/admin-login.html';
         }
 
-        // Variable to hold batches state for dropdown population
         let globalBatches = []; 
 
         function logoutAdmin() {
@@ -144,7 +164,7 @@
             try {
                 const response = await fetch('/api/get-batches');
                 const batches = await response.json();
-                globalBatches = batches; // Update global state
+                globalBatches = batches; 
                 
                 const container = document.getElementById('batchContainer');
                 container.innerHTML = ''; 
@@ -167,7 +187,6 @@
                     container.appendChild(card);
                 });
 
-                // Populate modals immediately after fetching batches
                 populateModalDropdowns();
 
             } catch (error) {
@@ -233,14 +252,20 @@
             });
             document.getElementById('ansBatchSelect').innerHTML = optionsHTML;
             document.getElementById('manualBatchSelect').innerHTML = optionsHTML;
+            document.getElementById('vaultBatchSelect').innerHTML = optionsHTML;
         }
 
         function openAnsModal() { document.getElementById('ansModal').style.display = 'block'; }
         function openManualMarksModal() { document.getElementById('manualMarksModal').style.display = 'block'; }
+        function openVaultModal() { document.getElementById('vaultModal').style.display = 'block'; }
         
         function closeModals() {
             document.getElementById('ansModal').style.display = 'none';
             document.getElementById('manualMarksModal').style.display = 'none';
+            document.getElementById('vaultModal').style.display = 'none';
+            // Reset vault view on close
+            document.getElementById('vaultFilesContainer').innerHTML = '<p style="color: gray; font-size: 14px;">Select a batch to view its uploaded files.</p>';
+            document.getElementById('vaultBatchSelect').value = "";
         }
 
         // Frontend submission handling (requires backend API connection next)
@@ -264,6 +289,77 @@
 
             console.log("Data ready to send to server:", {batchId, file});
             alert("UI is ready. Next step: We need to write the backend API endpoint to handle this upload.");
+        }
+
+        // --- Vault Logic ---
+        async function loadVaultFiles() {
+            const batchId = document.getElementById('vaultBatchSelect').value;
+            const container = document.getElementById('vaultFilesContainer');
+            
+            if (!batchId) {
+                container.innerHTML = '<p style="color: gray; font-size: 14px;">Select a batch to view its uploaded files.</p>';
+                return;
+            }
+
+            container.innerHTML = '<p>Loading files securely from Vault...</p>';
+
+            try {
+                const response = await fetch(`/api/vault/${batchId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!response.ok) throw new Error("API Fetch Failed");
+                const files = await response.json();
+
+                if (files.length === 0) {
+                    container.innerHTML = '<p style="color:red; font-weight:bold;">Is batch mein abhi tak koi file upload nahi hui hai.</p>';
+                    return;
+                }
+
+                let html = '<ul style="list-style:none; padding:0; margin:0;">';
+                files.forEach(file => {
+                    html += `
+                    <li style="background:#f8f9fa; padding:12px; margin-bottom:10px; border:1px solid #ddd; border-radius:4px; display:flex; justify-content:space-between; align-items:center;">
+                        <div style="text-align:left;">
+                            <strong>${file.fileType === 'marksheet' ? 'Manual Marksheet' : 'Answer Sheet'}</strong><br>
+                            <span style="font-size:12px; color:#555;">
+                                ${file.subject ? 'Subject: ' + file.subject : 'Vault File'} 
+                                ${file.unit ? '| Unit: ' + file.unit : ''}
+                            </span>
+                        </div>
+                        <div>
+                            <a href="${file.fileUrl}" target="_blank" class="btn-success" style="text-decoration:none; padding:6px 12px; font-size:12px; display:inline-block; margin-right:5px; border-radius:4px; color:white; background:#28a745;">View PDF</a>
+                            <button class="logout-btn" style="padding:6px 12px; font-size:12px; border:none; border-radius:4px; color:white; cursor:pointer;" onclick="deleteVaultFile('${file._id}')">Delete</button>
+                        </div>
+                    </li>`;
+                });
+                html += '</ul>';
+                container.innerHTML = html;
+
+            } catch (error) {
+                container.innerHTML = '<p style="color:red;">Error connecting to server. API endpoint missing.</p>';
+            }
+        }
+
+        async function deleteVaultFile(fileId) {
+            if (!confirm("WARNING: Ye file Cloudinary aur Database dono se permanently delete ho jayegi. Continue?")) return;
+
+            try {
+                const response = await fetch(`/api/vault/delete/${fileId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    alert("File successfully deleted.");
+                    loadVaultFiles(); 
+                } else {
+                    const result = await response.json();
+                    alert(result.error || "Delete failed");
+                }
+            } catch (error) {
+                alert("Server error during deletion");
+            }
         }
     </script>
 </body>
