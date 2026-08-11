@@ -6,31 +6,56 @@
     <title>Student Record Portal - Admin</title>
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f9; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        
+        /* Updated Header */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        
         .batch-container { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 20px; }
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 200px; text-align: center; border-top: 4px solid #007bff; }
         .card:hover { transform: translateY(-5px); transition: 0.3s; }
+        
         .add-batch-form { margin-bottom: 20px; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: inline-block; }
-        input { padding: 10px; margin-right: 10px; border: 1px solid #ccc; border-radius: 4px; width: 200px; }
-        button { cursor: pointer; background: #28a745; color: white; border: none; padding: 10px 15px; border-radius: 4px; font-weight: bold; }
-        button:hover { background: #218838; }
+        input[type="text"], select { padding: 10px; margin-right: 10px; border: 1px solid #ccc; border-radius: 4px; width: 200px; }
+        
+        /* Buttons */
+        button { cursor: pointer; color: white; border: none; padding: 10px 15px; border-radius: 4px; font-weight: bold; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+        .btn-primary { background: #007bff; }
+        .btn-primary:hover { background: #0056b3; }
+        .btn-purple { background: #6f42c1; }
+        .btn-purple:hover { background: #59339d; }
         .logout-btn { background: #dc3545; }
         .logout-btn:hover { background: #c82333; }
         .delete-batch-btn { background: #dc3545; color: white; border: none; padding: 5px 10px; font-size: 12px; border-radius: 4px; cursor: pointer; margin-top: 10px; width: 100%; }
         .delete-batch-btn:hover { background: #c82333; }
+
+        /* Modal Styles */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
+        .modal-content { background: white; max-width: 500px; margin: 100px auto; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+        .modal-content h3 { margin-top: 0; }
+        .form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
+        .form-group label { margin-bottom: 5px; font-weight: bold; font-size: 14px; }
+        .form-group input[type="file"] { padding: 10px 0; }
     </style>
 </head>
 <body>
 
     <div class="header">
         <h1>Admin Dashboard</h1>
-        <button class="logout-btn" onclick="logoutAdmin()">Logout</button>
+        <div class="header-actions">
+            <!-- Injecting New Buttons Here -->
+            <button class="btn-primary" onclick="openAnsModal()">Upload Answer Sheets</button>
+            <button class="btn-purple" onclick="openManualMarksModal()">Upload Manual Marksheets</button>
+            <button class="logout-btn" onclick="logoutAdmin()">Logout</button>
+        </div>
     </div>
 
     <div class="add-batch-form">
         <h3>Add New Batch</h3>
         <input type="text" id="batchNameInput" placeholder="Enter Batch Name (e.g., Batch 1)">
-        <button onclick="addBatch()">Add Batch</button>
+        <button class="btn-success" onclick="addBatch()">Add Batch</button>
     </div>
 
     <h2>Active Batches</h2>
@@ -38,11 +63,75 @@
         <p>Loading batches...</p>
     </div>
 
+    <!-- Modal 1: Answer Sheets Upload (Replacing Regex logic with exact dropdowns) -->
+    <div id="ansModal" class="modal">
+        <div class="modal-content">
+            <h3>Upload Batch Answer Sheets</h3>
+            <div class="form-group">
+                <label>Select Batch</label>
+                <select id="ansBatchSelect">
+                    <option value="">-- Loading Batches --</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Select Subject</label>
+                <select id="ansSubjectSelect">
+                    <option value="GIS">GIS</option>
+                    <option value="RS">Remote Sensing (RS)</option>
+                    <option value="LIDAR">LiDAR</option>
+                    <option value="DRONE">Drone</option>
+                    <option value="WEBGIS">WebGIS</option>
+                    <option value="GEOAI">GeoAI</option>
+                    <option value="GPS">GPS</option>
+                    <option value="PYTHON">Python</option>
+                    <option value="PHT">Photogrammetry (PHT)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Select Unit</label>
+                <select id="ansUnitSelect">
+                    <option value="1U">Unit 1</option>
+                    <option value="2U">Unit 2</option>
+                    <option value="3U">Unit 3</option>
+                    <option value="4U">Unit 4</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Upload Merged PDF</label>
+                <input type="file" id="ansFileInput" accept=".pdf">
+            </div>
+            <button class="btn-success" onclick="uploadAnswerSheet()">Upload Now</button>
+            <button class="logout-btn" style="margin-left:10px;" onclick="closeModals()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Modal 2: Manual Marksheets Vault -->
+    <div id="manualMarksModal" class="modal">
+        <div class="modal-content">
+            <h3>Upload Manual Marksheets</h3>
+            <div class="form-group">
+                <label>Select Batch Context</label>
+                <select id="manualBatchSelect">
+                    <option value="">-- Loading Batches --</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Upload PDF</label>
+                <input type="file" id="manualFileInput" accept=".pdf,.zip">
+            </div>
+            <button class="btn-purple" onclick="uploadManualMarksheet()">Store in Vault</button>
+            <button class="logout-btn" style="margin-left:10px;" onclick="closeModals()">Cancel</button>
+        </div>
+    </div>
+
     <script>
         const token = localStorage.getItem('adminToken');
         if (!token) {
             window.location.href = '/admin-login.html';
         }
+
+        // Variable to hold batches state for dropdown population
+        let globalBatches = []; 
 
         function logoutAdmin() {
             localStorage.removeItem('adminToken');
@@ -55,6 +144,7 @@
             try {
                 const response = await fetch('/api/get-batches');
                 const batches = await response.json();
+                globalBatches = batches; // Update global state
                 
                 const container = document.getElementById('batchContainer');
                 container.innerHTML = ''; 
@@ -76,6 +166,10 @@
                     `;
                     container.appendChild(card);
                 });
+
+                // Populate modals immediately after fetching batches
+                populateModalDropdowns();
+
             } catch (error) {
                 console.error("Error fetching batches:", error);
             }
@@ -129,6 +223,47 @@
             } catch (error) {
                 alert("Server error connecting to delete API.");
             }
+        }
+
+        // --- Injected Modal Logic ---
+        function populateModalDropdowns() {
+            let optionsHTML = '<option value="">-- Select a Batch --</option>';
+            globalBatches.forEach(b => {
+                optionsHTML += `<option value="${b._id}">${b.batchName}</option>`;
+            });
+            document.getElementById('ansBatchSelect').innerHTML = optionsHTML;
+            document.getElementById('manualBatchSelect').innerHTML = optionsHTML;
+        }
+
+        function openAnsModal() { document.getElementById('ansModal').style.display = 'block'; }
+        function openManualMarksModal() { document.getElementById('manualMarksModal').style.display = 'block'; }
+        
+        function closeModals() {
+            document.getElementById('ansModal').style.display = 'none';
+            document.getElementById('manualMarksModal').style.display = 'none';
+        }
+
+        // Frontend submission handling (requires backend API connection next)
+        function uploadAnswerSheet() {
+            const batchId = document.getElementById('ansBatchSelect').value;
+            const subject = document.getElementById('ansSubjectSelect').value;
+            const unit = document.getElementById('ansUnitSelect').value;
+            const file = document.getElementById('ansFileInput').files[0];
+
+            if(!batchId || !file) return alert("Please select a batch and attach a file!");
+            
+            console.log("Data ready to send to server:", {batchId, subject, unit, file});
+            alert("UI is ready. Next step: We need to write the backend API endpoint to handle this upload.");
+        }
+
+        function uploadManualMarksheet() {
+            const batchId = document.getElementById('manualBatchSelect').value;
+            const file = document.getElementById('manualFileInput').files[0];
+            
+            if(!batchId || !file) return alert("Please select a batch and attach a file!");
+
+            console.log("Data ready to send to server:", {batchId, file});
+            alert("UI is ready. Next step: We need to write the backend API endpoint to handle this upload.");
         }
     </script>
 </body>
