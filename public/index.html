@@ -378,20 +378,14 @@
         }
 
         async function downloadPDF(url) {
-            try {
-                const response = await fetch(url);
-                const blob = await response.blob();
-                const blobUrl = window.URL.createObjectURL(blob);
-                
-                const a = document.createElement('a');
-                a.href = blobUrl;
-                a.download = "Document.pdf";
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-            } catch (err) {
-                window.open(url, '_blank');
-            }
+            const a = document.createElement('a');
+            a.href = url;
+            a.target = '_blank';
+            a.download = 'Document.pdf';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
         }
 
         async function deleteVaultFile(fileId) {
