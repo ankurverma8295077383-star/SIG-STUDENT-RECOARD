@@ -48,39 +48,9 @@
 
         <div class="marks-container">
             <h3>Academic Performance</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th style="text-align: left;">Technology / Unit</th>
-                        <th>GIS</th><th>RS</th><th>LiDAR</th><th>PHT</th><th>Drone</th><th>GPS</th><th>WebGIS</th><th>GeoAI</th><th>Python</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td class="row-header">Unit 1:⏫</td>
-                        <td id="u1-gis">0</td><td id="u1-rs">0</td><td id="u1-lidar">0</td><td id="u1-pht">0</td><td id="u1-drone">0</td><td id="u1-gps">0</td><td id="u1-webgis">0</td><td id="u1-geoai">0</td><td id="u1-python">0</td>
-                    </tr>
-                    <tr>
-                        <td class="row-header">Unit 2:📈</td>
-                        <td id="u2-gis">0</td><td id="u2-rs">0</td><td id="u2-lidar">0</td><td id="u2-pht">0</td><td id="u2-drone">0</td><td id="u2-gps">0</td><td id="u2-webgis">0</td><td id="u2-geoai">0</td><td id="u2-python">0</td>
-                    </tr>
-                    <tr>
-                        <td class="row-header">Unit 3:🚀</td>
-                        <td id="u3-gis">0</td><td id="u3-rs">0</td><td id="u3-lidar">0</td><td id="u3-pht">0</td><td id="u3-drone">0</td><td id="u3-gps">0</td><td id="u3-webgis">0</td><td id="u3-geoai">0</td><td id="u3-python">0</td>
-                    </tr>
-                    <tr>
-                        <td class="row-header">Unit 4:⭐</td>
-                        <td id="u4-gis">0</td><td id="u4-rs">0</td><td id="u4-lidar">0</td><td id="u4-pht">0</td><td id="u4-drone">0</td><td id="u4-gps">0</td><td id="u4-webgis">0</td><td id="u4-geoai">0</td><td id="u4-python">0</td>
-                    </tr>
-                    <tr>
-                        <td class="row-header">Unit 5:🆙</td>
-                        <td id="u5-gis">0</td><td id="u5-rs">0</td><td id="u5-lidar">0</td><td id="u5-pht">0</td><td id="u5-drone">0</td><td id="u5-gps">0</td><td id="u5-webgis">0</td><td id="u5-geoai">0</td><td id="u5-python">0</td>
-                    </tr>
-                    <tr class="total-row">
-                        <td class="row-header">Final Exam</td>
-                        <td id="f-gis">0</td><td id="f-rs">0</td><td id="f-lidar">0</td><td id="f-pht">0</td><td id="f-drone">0</td><td id="f-gps">0</td><td id="f-webgis">0</td><td id="f-geoai">0</td><td id="f-python">0</td>
-                    </tr>
-                </tbody>
+            <table id="studentMarksTable">
+                <!-- JS Inject Karega basis on enrolledTechs -->
+                <tr><td>Loading Matrix...</td></tr>
             </table>
         </div>
 
@@ -115,40 +85,49 @@
                     document.getElementById('mobileNo').innerText = student.mobileNo || 'N/A';
                     document.getElementById('duration').innerText = `${student.startDate || '-'} to ${student.endDate || '-'}`;
 
-                    // Dynamic Marks Mapping (54 Data Points -> T and P)
-                    if (student.marks) {
-                        const units = ['u1', 'u2', 'u3', 'u4', 'u5', 'f'];
-                        const techs = ['gis', 'rs', 'lidar', 'pht', 'drone', 'gps', 'webgis', 'geoai', 'python'];
+                    // Dynamic Table Generation based on enrolledTechs
+                    const defaultTechs = ['gis', 'rs', 'lidar', 'pht', 'drone', 'gps', 'webgis', 'geoai', 'python'];
+                    // Agar admin ne abhi tak koi tech check nahi ki hai, toh default sab dikha do
+                    const activeTechs = (student.enrolledTechs && student.enrolledTechs.length > 0) ? student.enrolledTechs : defaultTechs;
+                    
+                    const units = ['u1', 'u2', 'u3', 'u4', 'u5', 'f'];
+                    const unitLabels = ['Unit 1:⏫', 'Unit 2:📈', 'Unit 3:🚀', 'Unit 4:⭐', 'Unit 5:🆙', 'Final Exam'];
+
+                    // Thead build karna
+                    let tableHTML = `<thead><tr><th style="text-align: left;">Technology / Unit</th>`;
+                    activeTechs.forEach(t => {
+                        tableHTML += `<th>${t.toUpperCase()}</th>`;
+                    });
+                    tableHTML += `</tr></thead><tbody>`;
+
+                    // Tbody build karna
+                    units.forEach((unit, i) => {
+                        tableHTML += `<tr class="${unit === 'f' ? 'total-row' : ''}">`;
+                        tableHTML += `<td class="row-header">${unitLabels[i]}</td>`;
                         
-                        units.forEach(unit => {
-                            techs.forEach(tech => {
-                                const htmlId = `${unit}-${tech}`;
-                                const dbKey = `${unit}_${tech}`; 
-                                const element = document.getElementById(htmlId);
-                                
-                                if (element) {
-                                    let tVal = 0;
-                                    let pVal = 0;
-                                    let markObj = null;
+                        activeTechs.forEach(tech => {
+                            const dbKey = `${unit}_${tech}`; 
+                            let tVal = 0, pVal = 0;
 
-                                    if (student.marks instanceof Map || typeof student.marks.get === 'function') {
-                                        markObj = student.marks.get(dbKey);
-                                    } else {
-                                        markObj = student.marks[dbKey];
-                                    }
-
-                                    // Extract Theory and Practical values
-                                    if (markObj) {
-                                        tVal = markObj.theory !== undefined ? markObj.theory : 0;
-                                        pVal = markObj.practical !== undefined ? markObj.practical : 0;
-                                    }
-
-                                    // Render formatted HTML
-                                    element.innerHTML = `<span class="theory-text" title="Theory">${tVal} (T)</span> | <span class="practical-text" title="Practical">${pVal} (P)</span>`;
+                            if (student.marks) {
+                                let markObj = null;
+                                if (student.marks instanceof Map || typeof student.marks.get === 'function') {
+                                    markObj = student.marks.get(dbKey);
+                                } else {
+                                    markObj = student.marks[dbKey];
                                 }
-                            });
+                                if (markObj) {
+                                    tVal = markObj.theory !== undefined ? markObj.theory : 0;
+                                    pVal = markObj.practical !== undefined ? markObj.practical : 0;
+                                }
+                            }
+                            tableHTML += `<td><span class="theory-text" title="Theory">${tVal} (T)</span> | <span class="practical-text" title="Practical">${pVal} (P)</span></td>`;
                         });
-                    }
+                        tableHTML += `</tr>`;
+                    });
+                    tableHTML += `</tbody>`;
+                    
+                    document.getElementById('studentMarksTable').innerHTML = tableHTML;
 
                     // Direct Download Marksheet Option
                     const marksheetSec = document.getElementById('marksheetSection');
