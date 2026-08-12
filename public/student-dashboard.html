@@ -9,17 +9,21 @@
         .header { display: flex; justify-content: space-between; align-items: center; background: #28a745; color: white; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; }
         .logout-btn { background: #dc3545; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .logout-btn:hover { background: #c82333; }
-        .dashboard-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); max-width: 900px; margin: 0 auto; }
+        .dashboard-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); max-width: 1000px; margin: 0 auto; }
         .info-group { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #eee; }
         .info-group strong { display: inline-block; width: 150px; color: #555; }
         
         /* Marks Table Styles */
         .marks-container { margin-top: 25px; overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; text-align: center; }
-        th, td { border: 1px solid #ddd; padding: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; text-align: center; }
+        th, td { border: 1px solid #ddd; padding: 8px; white-space: nowrap; }
         th { background-color: #007bff; color: white; }
         .row-header { text-align: left; font-weight: bold; background-color: #f8f9fa; }
         .total-row td { font-weight: bold; background-color: #e9ecef; }
+
+        /* T and P text colors */
+        .theory-text { color: #0056b3; font-weight: bold; }
+        .practical-text { color: #28a745; font-weight: bold; }
 
         .marksheet-section { text-align: center; margin-top: 25px; padding-top: 20px; border-top: 2px dashed #ccc; }
         .download-btn { background: #28a745; color: white; padding: 14px 28px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block; font-size: 16px; }
@@ -111,7 +115,7 @@
                     document.getElementById('mobileNo').innerText = student.mobileNo || 'N/A';
                     document.getElementById('duration').innerText = `${student.startDate || '-'} to ${student.endDate || '-'}`;
 
-                    // Dynamic Marks Mapping (54 Data Points)
+                    // Dynamic Marks Mapping (54 Data Points -> T and P)
                     if (student.marks) {
                         const units = ['u1', 'u2', 'u3', 'u4', 'u5', 'f'];
                         const techs = ['gis', 'rs', 'lidar', 'pht', 'drone', 'gps', 'webgis', 'geoai', 'python'];
@@ -121,14 +125,26 @@
                                 const htmlId = `${unit}-${tech}`;
                                 const dbKey = `${unit}_${tech}`; 
                                 const element = document.getElementById(htmlId);
+                                
                                 if (element) {
-                                    let val = 0;
+                                    let tVal = 0;
+                                    let pVal = 0;
+                                    let markObj = null;
+
                                     if (student.marks instanceof Map || typeof student.marks.get === 'function') {
-                                        val = student.marks.get(dbKey) || 0;
+                                        markObj = student.marks.get(dbKey);
                                     } else {
-                                        val = student.marks[dbKey] || 0;
+                                        markObj = student.marks[dbKey];
                                     }
-                                    element.innerText = val;
+
+                                    // Extract Theory and Practical values
+                                    if (markObj) {
+                                        tVal = markObj.theory !== undefined ? markObj.theory : 0;
+                                        pVal = markObj.practical !== undefined ? markObj.practical : 0;
+                                    }
+
+                                    // Render formatted HTML
+                                    element.innerHTML = `<span class="theory-text" title="Theory">${tVal} (T)</span> | <span class="practical-text" title="Practical">${pVal} (P)</span>`;
                                 }
                             });
                         });
