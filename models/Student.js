@@ -11,10 +11,13 @@ const studentSchema = new mongoose.Schema({
     programOpted: { type: String },
     password: { type: String, required: true },
     
-    // 54 marks data points handle karne ke liye Map
+    // 54 marks data points handle karne ke liye Map (Ab Theory aur Practical ke sath)
     marks: { 
         type: Map, 
-        of: Number, 
+        of: new mongoose.Schema({
+            theory: { type: Number, default: 0 },
+            practical: { type: Number, default: 0 }
+        }, { _id: false }), 
         default: {} 
     },
 
