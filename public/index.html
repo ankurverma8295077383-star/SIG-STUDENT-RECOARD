@@ -20,11 +20,14 @@
         
         .card { background: #f8f9fa; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; border-top: 4px solid #007bff; }
         .card:hover { transform: translateY(-3px); transition: 0.3s; }
-        .card.ind-card { border-top: 4px solid #ffc107; } /* Individual Student Highlight */
+        .card.ind-card { border-top: 4px solid #ffc107; }
 
         input[type="text"], select { padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
         .input-group { display: flex; gap: 10px; flex-wrap: wrap; }
         
+        /* Grid layout for Individual Student Form */
+        .form-grid-ind { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
         /* Buttons */
         button { cursor: pointer; color: white; border: none; padding: 10px 15px; border-radius: 4px; font-weight: bold; }
         .btn-success { background: #28a745; }
@@ -72,10 +75,14 @@
 
         <div class="panel" style="border-top: 4px solid #ffc107;">
             <h3 class="panel-header">Add Individual Student</h3>
-            <div class="input-group">
-                <input type="text" id="indRollNo" placeholder="Roll No" style="width: 100px;">
-                <input type="text" id="indName" placeholder="Student Name" style="flex:1;">
-                <button class="btn-purple" onclick="addIndividualStudent()">Add Student</button>
+            <div class="form-grid-ind">
+                <input type="text" id="indRollNo" placeholder="Roll No (Required)">
+                <input type="text" id="indName" placeholder="Student Name (Required)">
+                <input type="text" id="indIdNo" placeholder="ID No (Required)">
+                <input type="text" id="indMobileNo" placeholder="Mobile No (Required)">
+                <input type="text" id="indStartDate" placeholder="Start Date (Required)">
+                <input type="text" id="indEndDate" placeholder="End Date (Required)">
+                <button class="btn-purple" style="grid-column: span 2;" onclick="addIndividualStudent()">Add Student</button>
             </div>
         </div>
     </div>
@@ -187,7 +194,7 @@
         }
 
         let globalBatches = []; 
-        let individualBatchId = null; // Smart Background Tracking variable
+        let individualBatchId = null; 
 
         function logoutAdmin() {
             localStorage.removeItem('adminToken');
@@ -201,23 +208,19 @@
                 const response = await fetch('/api/get-batches');
                 const batches = await response.json();
                 
-                // Smart Logic: Find the hidden batch for individual students
                 const indBatch = batches.find(b => b.batchName === "INDIVIDUAL_STUDENTS_BATCH");
                 
                 if (!indBatch) {
-                    // Create hidden individual batch in background if it doesn't exist
                     await fetch('/api/add-batch', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                         body: JSON.stringify({ batchName: "INDIVIDUAL_STUDENTS_BATCH" })
                     });
-                    fetchBatches(); // Reload automatically after creation
+                    fetchBatches(); 
                     return;
                 }
 
                 individualBatchId = indBatch._id;
-                
-                // Exclude the hidden batch from the left-side UI and Modals
                 globalBatches = batches.filter(b => b._id !== individualBatchId); 
                 
                 const container = document.getElementById('batchContainer');
@@ -241,16 +244,13 @@
                 }
 
                 populateModalDropdowns();
-                fetchIndividualStudents(); // Load right side list
+                fetchIndividualStudents(); 
 
             } catch (error) {
                 console.error("Error fetching batches:", error);
             }
         }
 
-        // ==========================================
-        // INDIVIDUAL STUDENT LOGIC (RIGHT SIDE)
-        // ==========================================
         async function fetchIndividualStudents() {
             if (!individualBatchId) return;
             try {
@@ -281,15 +281,27 @@
             }
         }
 
+        // Updated Individual Student logic with new required fields
         async function addIndividualStudent() {
             const rollNo = document.getElementById('indRollNo').value;
             const name = document.getElementById('indName').value;
-            if (!rollNo || !name) return alert("Roll No and Name are required!");
+            const idNo = document.getElementById('indIdNo').value;
+            const mobileNo = document.getElementById('indMobileNo').value;
+            const startDate = document.getElementById('indStartDate').value;
+            const endDate = document.getElementById('indEndDate').value;
+
+            if (!rollNo || !name || !idNo || !mobileNo || !startDate || !endDate) {
+                return alert("All fields (Roll No, Name, ID No, Mobile No, Start Date, End Date) are required to add an individual student!");
+            }
 
             const sData = {
-                batchId: individualBatchId, // Maps to hidden batch
+                batchId: individualBatchId, 
                 rollNo: rollNo,
-                name: name
+                name: name,
+                idNo: idNo,
+                mobileNo: mobileNo,
+                startDate: startDate,
+                endDate: endDate
             };
 
             try {
@@ -300,9 +312,15 @@
                 });
                 
                 if (response.ok) {
-                    alert("Individual Student Added!");
+                    alert("Individual Student Added Successfully!");
+                    // Clear inputs
                     document.getElementById('indRollNo').value = '';
                     document.getElementById('indName').value = '';
+                    document.getElementById('indIdNo').value = '';
+                    document.getElementById('indMobileNo').value = '';
+                    document.getElementById('indStartDate').value = '';
+                    document.getElementById('indEndDate').value = '';
+                    
                     fetchIndividualStudents(); 
                 } else {
                     alert((await response.json()).error);
@@ -331,9 +349,6 @@
             }
         }
 
-        // ==========================================
-        // BATCH LOGIC (LEFT SIDE)
-        // ==========================================
         async function addBatch() {
             const batchName = document.getElementById('batchNameInput').value;
             if (!batchName) return alert("Please enter a batch name!");
@@ -405,9 +420,6 @@
             document.getElementById('vaultBatchSelect').value = "";
         }
 
-        // ==========================================
-        // UPLOAD & VAULT LOGIC
-        // ==========================================
         async function uploadAnswerSheet() {
             const batchId = document.getElementById('ansBatchSelect').value;
             const subject = document.getElementById('ansSubjectSelect').value;
