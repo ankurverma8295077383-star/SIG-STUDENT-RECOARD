@@ -137,17 +137,20 @@ app.post('/api/upload-marksheet/:studentId', authenticateAdmin, upload.single('m
     }
 });
 
-// 6. Update Student Marks API (Secured for 54 Data Points)
+// 6. Update Student Marks & Enrolled Techs API (Updated for Checkboxes)
 app.post('/api/update-marks/:studentId', authenticateAdmin, async (req, res) => {
     try {
         await Student.findByIdAndUpdate(
             req.params.studentId,
-            { marks: req.body.marks },
+            { 
+                marks: req.body.marks,
+                enrolledTechs: req.body.enrolledTechs // Naya field yahan save hoga
+            },
             { new: true }
         );
-        res.status(200).json({ message: "Marks successfully updated" });
+        res.status(200).json({ message: "Marks and Technologies successfully updated" });
     } catch (error) {
-        res.status(500).json({ error: "Marks update fail ho gaye" });
+        res.status(500).json({ error: "Update fail ho gaya" });
     }
 });
 
