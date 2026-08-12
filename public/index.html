@@ -7,11 +7,9 @@
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f9; }
         
-        /* Updated Header */
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
         .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
         
-        /* Dashboard Layout Split (50-50 Left/Right) */
         .dashboard-split { display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 25px; }
         .panel { flex: 1; min-width: 450px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
         .panel-header { margin-top: 0; margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 10px; color: #333; }
@@ -25,10 +23,8 @@
         input[type="text"], select { padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
         .input-group { display: flex; gap: 10px; flex-wrap: wrap; }
         
-        /* Grid layout for Individual Student Form */
         .form-grid-ind { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-        /* Buttons */
         button { cursor: pointer; color: white; border: none; padding: 10px 15px; border-radius: 4px; font-weight: bold; }
         .btn-success { background: #28a745; }
         .btn-success:hover { background: #218838; }
@@ -44,11 +40,12 @@
         .manage-btn { background: #17a2b8; color: white; border: none; padding: 5px 10px; font-size: 12px; border-radius: 4px; cursor: pointer; margin-top: 5px; width: 100%; }
         .manage-btn:hover { background: #138496; }
 
-        /* Modal Styles */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
         .modal-content { background: white; max-width: 500px; margin: 100px auto; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
         .form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
         .form-group label { margin-bottom: 5px; font-weight: bold; font-size: 14px; }
+        
+        optgroup { font-weight: bold; color: #333; }
     </style>
 </head>
 <body>
@@ -109,11 +106,11 @@
     <!-- Modal 1: Answer Sheets Upload -->
     <div id="ansModal" class="modal">
         <div class="modal-content">
-            <h3>Upload Batch Answer Sheets</h3>
+            <h3>Upload Answer Sheets</h3>
             <div class="form-group">
-                <label>Select Batch</label>
+                <label>Select Target</label>
                 <select id="ansBatchSelect">
-                    <option value="">-- Loading Batches --</option>
+                    <option value="">-- Loading Targets --</option>
                 </select>
             </div>
             <div class="form-group">
@@ -153,9 +150,9 @@
         <div class="modal-content">
             <h3>Upload Manual Marksheets</h3>
             <div class="form-group">
-                <label>Select Batch Context</label>
+                <label>Select Target Context</label>
                 <select id="manualBatchSelect">
-                    <option value="">-- Loading Batches --</option>
+                    <option value="">-- Loading Targets --</option>
                 </select>
             </div>
             <div class="form-group">
@@ -173,14 +170,14 @@
             <h3>Vault Manager (Answer Sheets & Marksheets)</h3>
             
             <div class="form-group">
-                <label>Select Batch to View Files</label>
+                <label>Select Target to View Files</label>
                 <select id="vaultBatchSelect" onchange="loadVaultFiles()">
-                    <option value="">-- Select a Batch --</option>
+                    <option value="">-- Loading Targets --</option>
                 </select>
             </div>
 
             <div id="vaultFilesContainer" style="margin-top: 15px; border-top: 1px solid #ccc; padding-top: 15px;">
-                <p style="color: gray; font-size: 14px;">Select a batch to view its uploaded files.</p>
+                <p style="color: gray; font-size: 14px;">Select a batch or student to view uploaded files.</p>
             </div>
 
             <button class="logout-btn" style="margin-top:20px;" onclick="closeModals()">Close</button>
@@ -194,6 +191,7 @@
         }
 
         let globalBatches = []; 
+        let globalIndStudents = []; // Store ind students for dropdowns
         let individualBatchId = null; 
 
         function logoutAdmin() {
@@ -257,6 +255,9 @@
                 const response = await fetch(`/api/students/${individualBatchId}`);
                 const students = await response.json();
                 
+                globalIndStudents = students; // Assign to global array
+                populateModalDropdowns(); // Update dropdowns with specific student names
+                
                 const container = document.getElementById('individualContainer');
                 container.innerHTML = '';
 
@@ -281,7 +282,6 @@
             }
         }
 
-        // Updated Individual Student logic with new required fields
         async function addIndividualStudent() {
             const rollNo = document.getElementById('indRollNo').value;
             const name = document.getElementById('indName').value;
@@ -313,7 +313,6 @@
                 
                 if (response.ok) {
                     alert("Individual Student Added Successfully!");
-                    // Clear inputs
                     document.getElementById('indRollNo').value = '';
                     document.getElementById('indName').value = '';
                     document.getElementById('indIdNo').value = '';
@@ -398,11 +397,26 @@
             }
         }
 
+        // UPDATED: Segregate Batches and Individual Students in Dropdowns
         function populateModalDropdowns() {
-            let optionsHTML = '<option value="">-- Select a Batch --</option>';
-            globalBatches.forEach(b => {
-                optionsHTML += `<option value="${b._id}">${b.batchName}</option>`;
-            });
+            let optionsHTML = '<option value="">-- Select a Context --</option>';
+            
+            if(globalBatches.length > 0){
+                optionsHTML += '<optgroup label="Active Batches">';
+                globalBatches.forEach(b => {
+                    optionsHTML += `<option value="${b._id}">${b.batchName}</option>`;
+                });
+                optionsHTML += '</optgroup>';
+            }
+
+            if(globalIndStudents.length > 0){
+                optionsHTML += '<optgroup label="Individual Students">';
+                globalIndStudents.forEach(s => {
+                    optionsHTML += `<option value="${s._id}">${s.name} (${s.rollNo})</option>`;
+                });
+                optionsHTML += '</optgroup>';
+            }
+
             document.getElementById('ansBatchSelect').innerHTML = optionsHTML;
             document.getElementById('manualBatchSelect').innerHTML = optionsHTML;
             document.getElementById('vaultBatchSelect').innerHTML = optionsHTML;
@@ -416,7 +430,7 @@
             document.getElementById('ansModal').style.display = 'none';
             document.getElementById('manualMarksModal').style.display = 'none';
             document.getElementById('vaultModal').style.display = 'none';
-            document.getElementById('vaultFilesContainer').innerHTML = '<p style="color: gray; font-size: 14px;">Select a batch to view its uploaded files.</p>';
+            document.getElementById('vaultFilesContainer').innerHTML = '<p style="color: gray; font-size: 14px;">Select a batch or student to view uploaded files.</p>';
             document.getElementById('vaultBatchSelect').value = "";
         }
 
@@ -426,7 +440,7 @@
             const unit = document.getElementById('ansUnitSelect').value;
             const fileInput = document.getElementById('ansFileInput');
 
-            if(!batchId || !fileInput.files[0]) return alert("Please select a batch and attach a file!");
+            if(!batchId || !fileInput.files[0]) return alert("Please select a target and attach a file!");
 
             const formData = new FormData();
             formData.append('batchId', batchId);
@@ -457,7 +471,7 @@
             const batchId = document.getElementById('manualBatchSelect').value;
             const fileInput = document.getElementById('manualFileInput');
             
-            if(!batchId || !fileInput.files[0]) return alert("Please select a batch and attach a file!");
+            if(!batchId || !fileInput.files[0]) return alert("Please select a target and attach a file!");
 
             const formData = new FormData();
             formData.append('batchId', batchId);
@@ -487,7 +501,7 @@
             const container = document.getElementById('vaultFilesContainer');
             
             if (!batchId) {
-                container.innerHTML = '<p style="color: gray; font-size: 14px;">Select a batch to view its uploaded files.</p>';
+                container.innerHTML = '<p style="color: gray; font-size: 14px;">Select a batch or student to view uploaded files.</p>';
                 return;
             }
 
@@ -502,7 +516,7 @@
                 const files = await response.json();
 
                 if (files.length === 0) {
-                    container.innerHTML = '<p style="color:red; font-weight:bold;">Is batch mein abhi tak koi file upload nahi hui hai.</p>';
+                    container.innerHTML = '<p style="color:red; font-weight:bold;">No files uploaded yet for this target.</p>';
                     return;
                 }
 
