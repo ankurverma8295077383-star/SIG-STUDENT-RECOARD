@@ -11,7 +11,13 @@ const studentSchema = new mongoose.Schema({
     programOpted: { type: String },
     password: { type: String, required: true },
     
-    // 54 marks data points handle karne ke liye Map (Ab Theory aur Practical ke sath)
+    // Checkbox selections track karne ke liye required array
+    enrolledTechs: { 
+        type: [String], 
+        default: ['gis', 'rs', 'lidar', 'pht', 'drone', 'gps', 'webgis', 'geoai', 'python'] 
+    },
+
+    // 54 marks data points handle karne ke liye Map (Theory aur Practical ke sath)
     marks: { 
         type: Map, 
         of: new mongoose.Schema({
