@@ -16,6 +16,9 @@
         table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
         th { background-color: #007bff; color: white; }
+        
+        /* Action Buttons */
+        .edit-btn { background: #17a2b8; padding: 5px 10px; font-size: 12px; border: none; cursor: pointer; border-radius: 4px; margin-top: 5px; color: white; }
         .upload-btn { background: #28a745; padding: 5px 10px; font-size: 12px; border: none; cursor: pointer; border-radius: 4px; margin-top: 5px;}
         .marks-btn { background: #ffc107; padding: 5px 10px; font-size: 12px; color: black; border: none; cursor: pointer; border-radius: 4px; margin-top: 5px;}
         .delete-btn { background: #dc3545; color: white; border: none; padding: 5px 10px; font-size: 12px; border-radius: 4px; margin-top: 5px; cursor: pointer; }
@@ -23,10 +26,11 @@
         /* Modal Config */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
         .modal-content { background: white; max-width: 95%; margin: 30px auto; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); overflow-x: auto; max-height: 90vh; overflow-y: auto;}
+        .modal-content.small-modal { max-width: 600px; margin: 100px auto; }
         .close-btn { background: #dc3545; margin-top: 15px; }
         .save-marks-btn { background: #28a745; width: 100%; font-size: 16px; margin-top: 15px; }
         
-        /* New Matrix Table styling */
+        /* Matrix Table styling */
         #marksInputTable { width: 100%; border-collapse: collapse; text-align: center; font-size: 12px; min-width: 1000px; }
         #marksInputTable th { background: #343a40; color: white; padding: 8px; border: 1px solid #555; }
         #marksInputTable td { padding: 5px; border: 1px solid #ddd; }
@@ -41,6 +45,7 @@
         <a href="/" class="back-btn">← Back to Batches</a>
     </div>
 
+    <!-- ADD NEW STUDENT FORM -->
     <div class="form-container">
         <h3>Add New Student</h3>
         <form id="studentForm">
@@ -75,7 +80,28 @@
 
     <input type="file" id="fileInput" style="display: none;" accept=".pdf, .jpg, .jpeg, .png">
 
-    <!-- Advanced Marks Modal (Subject-Wise Format) -->
+    <!-- EDIT STUDENT PROFILE MODAL -->
+    <div id="editProfileModal" class="modal">
+        <div class="modal-content small-modal">
+            <h3>Edit Student Profile</h3>
+            <p style="font-size:12px; color:gray; margin-bottom:15px;">Roll No cannot be changed once assigned.</p>
+            <div class="form-grid">
+                <!-- Roll No is now locked (readonly) -->
+                <input type="text" id="edit_rollNo" placeholder="Roll No (Fixed)" readonly style="background-color: #e9ecef; cursor: not-allowed;" title="Roll No is fixed">
+                <input type="text" id="edit_name" placeholder="Student Name (Required)">
+                <input type="text" id="edit_idNo" placeholder="ID No">
+                <input type="text" id="edit_courseName" placeholder="Course Name">
+                <input type="text" id="edit_mobileNo" placeholder="Mobile No">
+                <input type="text" id="edit_programOpted" placeholder="Program Opted">
+                <input type="text" id="edit_startDate" placeholder="Start Date">
+                <input type="text" id="edit_endDate" placeholder="End Date">
+            </div>
+            <button class="save-marks-btn" style="background:#007bff;" onclick="submitProfileEdit()">Update Profile Details</button>
+            <button class="close-btn" onclick="closeEditModal()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- UPDATE MARKS/ACADEMICS MODAL -->
     <div id="marksModal" class="modal">
         <div class="modal-content">
             <h3>Update Academic Performance</h3>
@@ -177,6 +203,7 @@
                         <td>${student.name}</td>
                         <td>${student.courseName || '-'}</td>
                         <td>
+                            <button class="edit-btn" onclick="openEditModal('${student._id}')">Edit Profile</button>
                             <button class="marks-btn" onclick="openMarksModal('${student._id}')">Update Record</button>
                             <button class="upload-btn" onclick="uploadMarksheet('${student._id}')">Upload PDF</button>
                             <button style="background:#6c757d; color:white; border:none; padding:5px 10px; font-size:12px; border-radius:4px; margin-top:5px; cursor:pointer;" onclick="resetStudentPassword('${student._id}')">Reset Pass</button>
@@ -212,6 +239,72 @@
             } catch (error) { alert("Server connection error"); }
         };
 
+        // ==========================================
+        // EDIT PROFILE LOGIC
+        // ==========================================
+        let editTargetId = null;
+
+        function openEditModal(studentId) {
+            editTargetId = studentId;
+            const student = studentsData.find(s => s._id === studentId);
+            
+            document.getElementById('edit_rollNo').value = student.rollNo || '';
+            document.getElementById('edit_name').value = student.name || '';
+            document.getElementById('edit_idNo').value = student.idNo || '';
+            document.getElementById('edit_courseName').value = student.courseName || '';
+            document.getElementById('edit_mobileNo').value = student.mobileNo || '';
+            document.getElementById('edit_programOpted').value = student.programOpted || '';
+            document.getElementById('edit_startDate').value = student.startDate || '';
+            document.getElementById('edit_endDate').value = student.endDate || '';
+
+            document.getElementById('editProfileModal').style.display = 'block';
+        }
+
+        function closeEditModal() {
+            document.getElementById('editProfileModal').style.display = 'none';
+        }
+
+        async function submitProfileEdit() {
+            // Roll No payload mein include nahi kiya
+            const updatedData = {
+                name: document.getElementById('edit_name').value,
+                idNo: document.getElementById('edit_idNo').value,
+                courseName: document.getElementById('edit_courseName').value,
+                mobileNo: document.getElementById('edit_mobileNo').value,
+                programOpted: document.getElementById('edit_programOpted').value,
+                startDate: document.getElementById('edit_startDate').value,
+                endDate: document.getElementById('edit_endDate').value
+            };
+
+            if (!updatedData.name) {
+                return alert("Name is a mandatory field.");
+            }
+
+            try {
+                const response = await fetch(`/api/update-student-profile/${editTargetId}`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(updatedData)
+                });
+                
+                if (response.ok) {
+                    alert("Profile Updated Successfully!");
+                    loadStudents(); 
+                    closeEditModal();
+                } else {
+                    alert((await response.json()).error);
+                }
+            } catch (error) {
+                alert("Server Error while updating profile.");
+            }
+        }
+
+        // ==========================================
+        // OTHER LOGIC (Upload, Password, Delete)
+        // ==========================================
         let currentStudentId = null;
         function uploadMarksheet(studentId) {
             currentStudentId = studentId;
@@ -259,6 +352,9 @@
             } catch (error) { alert("API Error"); }
         }
 
+        // ==========================================
+        // MARKS / ACADEMICS LOGIC
+        // ==========================================
         let targetMarksStudentId = null;
         
         function openMarksModal(studentId) {
