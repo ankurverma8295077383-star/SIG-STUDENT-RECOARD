@@ -8,7 +8,7 @@ require('dotenv').config();
 const Batch = require('./models/Batch');
 const Student = require('./models/Student');
 const Admin = require('./models/Admin');
-const upload = require('./upload'); // Cloudinary upload setup
+const upload = require('./upload'); 
 
 // Vault Routes Import
 const vaultRoutes = require('./routes/vault');
@@ -18,11 +18,6 @@ app.use(express.json());
 app.use(express.static('public')); 
 
 const PORT = process.env.PORT || 5000;
-
-// Basic test route
-app.get('/', (req, res) => {
-    res.send("Student Record Portal Backend is Running!");
-});
 
 // ==========================================
 // SECURITY MIDDLEWARE
@@ -63,7 +58,7 @@ app.post('/api/admin/login', async (req, res) => {
     }
 });
 
-// 1. Naya Batch Add karne ka API (Secured)
+// 1. Naya Batch Add API
 app.post('/api/add-batch', authenticateAdmin, async (req, res) => {
     try {
         const { batchName } = req.body;
@@ -78,17 +73,17 @@ app.post('/api/add-batch', authenticateAdmin, async (req, res) => {
     }
 });
 
-// 2. Saare Batches fetch karne ka API
+// 2. Saare Batches fetch API (Lean added)
 app.get('/api/get-batches', async (req, res) => {
     try {
-        const batches = await Batch.find().sort({ createdAt: -1 }); 
+        const batches = await Batch.find().lean().sort({ createdAt: -1 }); 
         res.status(200).json(batches);
     } catch (error) {
         res.status(500).json({ error: "Batches fetch nahi ho paye" });
     }
 });
 
-// 3. Naya Student Add karne ka API (Secured)
+// 3. Naya Student Add API
 app.post('/api/add-student', authenticateAdmin, async (req, res) => {
     try {
         const hashedPassword = await bcrypt.hash(req.body.rollNo, 10);
@@ -103,14 +98,13 @@ app.post('/api/add-student', authenticateAdmin, async (req, res) => {
         res.status(201).json({ message: "Student successfully added!", student: newStudent });
     } catch (error) {
         if (error.code === 11000) return res.status(400).json({ error: "Is Roll No. ka student pehle se maujood hai" });
-        res.status(500).json({ error: "Student save karne mein error aayi", details: error.message });
+        res.status(500).json({ error: "Student save karne mein error aayi" });
     }
 });
 
 // 4. Update Student Profile Details API
 app.post('/api/update-student-profile/:studentId', authenticateAdmin, async (req, res) => {
     try {
-        // Roll No ko payload se hata diya hai taaki wo update na ho sake
         const { name, idNo, courseName, mobileNo, programOpted, startDate, endDate } = req.body;
         
         await Student.findByIdAndUpdate(
@@ -124,27 +118,28 @@ app.post('/api/update-student-profile/:studentId', authenticateAdmin, async (req
     }
 });
 
-// 5. Marksheet Upload API (Secured)
+// 5. Batch ke students fetch API (LEAN ADDED HERE FIXES THE CRASH)
+app.get('/api/students/:batchId', async (req, res) => {
+    try {
+        const students = await Student.find({ batchId: req.params.batchId }).lean().sort({ createdAt: -1 });
+        res.status(200).json(students);
+    } catch (error) {
+        res.status(500).json({ error: "Students fetch nahi ho paye" });
+    }
+});
+
+// 6. Marksheet Upload API
 app.post('/api/upload-marksheet/:studentId', authenticateAdmin, upload.single('marksheet'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: "File upload fail ho gayi" });
-
-        const fileUrl = req.file.path; 
-
-        await Student.findByIdAndUpdate(
-            req.params.studentId, 
-            { marksheetUrl: fileUrl }, 
-            { new: true }
-        );
-
-        res.status(200).json({ message: "Marksheet uploaded successfully", marksheetUrl: fileUrl });
+        await Student.findByIdAndUpdate(req.params.studentId, { marksheetUrl: req.file.path }, { new: true });
+        res.status(200).json({ message: "Marksheet uploaded successfully", marksheetUrl: req.file.path });
     } catch (error) {
-        console.error("Upload error:", error);
         res.status(500).json({ error: "Server error in file upload" });
     }
 });
 
-// 6. Update Student Marks, Techs & Placement API (UPDATED FOR NEW MATRIX)
+// 7. Update Student Marks, Techs & Placement API
 app.post('/api/update-marks/:studentId', authenticateAdmin, async (req, res) => {
     try {
         await Student.findByIdAndUpdate(
@@ -152,7 +147,7 @@ app.post('/api/update-marks/:studentId', authenticateAdmin, async (req, res) => 
             { 
                 marks: req.body.marks,
                 enrolledTechs: req.body.enrolledTechs,
-                placementStatus: req.body.placementStatus // Ye yahan add kiya hai
+                placementStatus: req.body.placementStatus 
             },
             { new: true }
         );
@@ -162,14 +157,10 @@ app.post('/api/update-marks/:studentId', authenticateAdmin, async (req, res) => 
     }
 });
 
-// ==========================================
-// VAULT APIs (PDF Uploads & Management)
-// ==========================================
 app.use('/api/vault', authenticateAdmin, vaultRoutes);
 
-
 // ==========================================
-// STUDENT SECURITY MIDDLEWARE
+// STUDENT APIs & MIDDLEWARE
 // ==========================================
 const authenticateStudent = (req, res, next) => {
     const token = req.header('Authorization');
@@ -184,92 +175,61 @@ const authenticateStudent = (req, res, next) => {
     }
 };
 
-// ==========================================
-// STUDENT API ROUTES
-// ==========================================
-
-// 1. Student Login API
 app.post('/api/student/login', async (req, res) => {
     try {
         const { rollNo, password } = req.body;
-        
         const student = await Student.findOne({ rollNo });
         if (!student) return res.status(400).json({ error: "Roll No galat hai" });
-
         const isMatch = await bcrypt.compare(password, student.password);
         if (!isMatch) return res.status(400).json({ error: "Password galat hai" });
 
         const token = jwt.sign({ id: student._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
-        
         res.status(200).json({ message: "Login Successful", token });
     } catch (error) {
         res.status(500).json({ error: "Server error" });
     }
 });
 
-// 2. Student Profile & Result Fetch API (Secured)
 app.get('/api/student/profile', authenticateStudent, async (req, res) => {
     try {
-        const student = await Student.findById(req.student.id).select('-password');
+        const student = await Student.findById(req.student.id).lean().select('-password');
         if (!student) return res.status(404).json({ error: "Student record nahi mila" });
-        
         res.status(200).json(student);
     } catch (error) {
         res.status(500).json({ error: "Server error" });
     }
 });
 
-
-// ==========================================
-// PASSWORD MANAGEMENT APIs
-// ==========================================
-
-// 1. Admin API: Reset Student Password to Default (Roll No)
 app.post('/api/admin/reset-password/:studentId', authenticateAdmin, async (req, res) => {
     try {
         const student = await Student.findById(req.params.studentId);
         if (!student) return res.status(404).json({ error: "Student nahi mila" });
-
         const hashedPassword = await bcrypt.hash(student.rollNo, 10);
         student.password = hashedPassword;
         await student.save();
-
         res.status(200).json({ message: `Password successfully reset to default (${student.rollNo})` });
     } catch (error) {
         res.status(500).json({ error: "Server error" });
     }
 });
 
-// 2. Student API: Change Password (Old Password to New Password)
 app.post('/api/student/change-password', async (req, res) => {
     try {
         const { rollNo, oldPassword, newPassword } = req.body;
-        
         const student = await Student.findOne({ rollNo });
-        if (!student) {
-            return res.status(400).json({ error: "Roll No nahi mila." });
-        }
-
+        if (!student) return res.status(400).json({ error: "Roll No nahi mila." });
         const isMatch = await bcrypt.compare(oldPassword, student.password);
-        if (!isMatch) {
-            return res.status(400).json({ error: "Purana password galat hai." });
-        }
+        if (!isMatch) return res.status(400).json({ error: "Purana password galat hai." });
 
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         student.password = hashedPassword;
         await student.save();
-
         res.status(200).json({ message: "Password successfully change ho gaya. Ab login karein." });
     } catch (error) {
         res.status(500).json({ error: "Server error" });
     }
 });
 
-// ==========================================
-// DELETE APIs (Admin Only)
-// ==========================================
-
-// 1. Delete Individual Student
 app.delete('/api/delete-student/:studentId', authenticateAdmin, async (req, res) => {
     try {
         await Student.findByIdAndDelete(req.params.studentId);
@@ -279,24 +239,18 @@ app.delete('/api/delete-student/:studentId', authenticateAdmin, async (req, res)
     }
 });
 
-// 2. Delete Entire Batch (Aur uske andar ke saare students)
 app.delete('/api/delete-batch/:batchId', authenticateAdmin, async (req, res) => {
     try {
         const batchId = req.params.batchId;
-        
         await Student.deleteMany({ batchId: batchId });
         await Batch.findByIdAndDelete(batchId);
-        
         res.status(200).json({ message: "Batch aur uske saare students delete ho gaye." });
     } catch (error) {
         res.status(500).json({ error: "Batch delete karne mein error aayi." });
     }
 });
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB Connected"))
-  .catch((err) => console.log(err));
+mongoose.connect(process.env.MONGO_URI).then(() => console.log("MongoDB Connected")).catch((err) => console.log(err));
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
