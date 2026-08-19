@@ -11,18 +11,28 @@ const studentSchema = new mongoose.Schema({
     programOpted: { type: String },
     password: { type: String, required: true },
     
+    // Overall Placement Status (Matrix se bahar)
+    placementStatus: { type: String, default: "Pending" },
+    
     // Checkbox selections track karne ke liye required array
     enrolledTechs: { 
         type: [String], 
         default: ['gis', 'rs', 'lidar', 'pht', 'drone', 'gps', 'webgis', 'geoai', 'python'] 
     },
 
-    // 54 marks data points handle karne ke liye Map (Theory aur Practical ke sath)
+    // Naya Subject-wise Matrix Schema
     marks: { 
         type: Map, 
         of: new mongoose.Schema({
-            theory: { type: Number, default: 0 },
-            practical: { type: Number, default: 0 }
+            midTermT: { type: Number, default: 0 },
+            midTermP: { type: Number, default: 0 },
+            finalT: { type: Number, default: 0 },
+            finalP: { type: Number, default: 0 },
+            viva: { type: Number, default: 0 },
+            attendance: { type: Number, default: 0 },
+            reports: { type: Number, default: 0 },
+            finalResult: { type: Number, default: 0 },
+            grade: { type: String, default: "" }
         }, { _id: false }), 
         default: {} 
     },
