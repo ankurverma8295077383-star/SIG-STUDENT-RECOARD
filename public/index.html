@@ -20,9 +20,10 @@
         .card:hover { transform: translateY(-3px); transition: 0.3s; }
         .card.ind-card { border-top: 4px solid #ffc107; }
 
-        input[type="text"], select { padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        input[type="text"], select { padding: 10px; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box; }
         .input-group { display: flex; gap: 10px; flex-wrap: wrap; }
         
+        /* Form grid updated for 8 fields */
         .form-grid-ind { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
         button { cursor: pointer; color: white; border: none; padding: 10px 15px; border-radius: 4px; font-weight: bold; }
@@ -77,6 +78,10 @@
                 <input type="text" id="indName" placeholder="Student Name (Required)">
                 <input type="text" id="indIdNo" placeholder="ID No (Required)">
                 <input type="text" id="indMobileNo" placeholder="Mobile No (Required)">
+                <!-- Naye Fields Yahan Add Kiye Gaye Hain -->
+                <input type="text" id="indCourseName" placeholder="Course Name">
+                <input type="text" id="indProgramOpted" placeholder="Program Opted">
+                
                 <input type="text" id="indStartDate" placeholder="Start Date (Required)">
                 <input type="text" id="indEndDate" placeholder="End Date (Required)">
                 <button class="btn-purple" style="grid-column: span 2;" onclick="addIndividualStudent()">Add Student</button>
@@ -191,7 +196,7 @@
         }
 
         let globalBatches = []; 
-        let globalIndStudents = []; // Store ind students for dropdowns
+        let globalIndStudents = []; 
         let individualBatchId = null; 
 
         function logoutAdmin() {
@@ -255,8 +260,8 @@
                 const response = await fetch(`/api/students/${individualBatchId}`);
                 const students = await response.json();
                 
-                globalIndStudents = students; // Assign to global array
-                populateModalDropdowns(); // Update dropdowns with specific student names
+                globalIndStudents = students; 
+                populateModalDropdowns(); 
                 
                 const container = document.getElementById('individualContainer');
                 container.innerHTML = '';
@@ -287,11 +292,17 @@
             const name = document.getElementById('indName').value;
             const idNo = document.getElementById('indIdNo').value;
             const mobileNo = document.getElementById('indMobileNo').value;
+            
+            // New logic for extra fields
+            const courseName = document.getElementById('indCourseName').value;
+            const programOpted = document.getElementById('indProgramOpted').value;
+
             const startDate = document.getElementById('indStartDate').value;
             const endDate = document.getElementById('indEndDate').value;
 
+            // Updated validation alert
             if (!rollNo || !name || !idNo || !mobileNo || !startDate || !endDate) {
-                return alert("All fields (Roll No, Name, ID No, Mobile No, Start Date, End Date) are required to add an individual student!");
+                return alert("Required fields (Roll No, Name, ID No, Mobile No, Start Date, End Date) must be filled!");
             }
 
             const sData = {
@@ -300,6 +311,8 @@
                 name: name,
                 idNo: idNo,
                 mobileNo: mobileNo,
+                courseName: courseName,
+                programOpted: programOpted,
                 startDate: startDate,
                 endDate: endDate
             };
@@ -313,10 +326,14 @@
                 
                 if (response.ok) {
                     alert("Individual Student Added Successfully!");
+                    
+                    // Clear inputs after successful submission
                     document.getElementById('indRollNo').value = '';
                     document.getElementById('indName').value = '';
                     document.getElementById('indIdNo').value = '';
                     document.getElementById('indMobileNo').value = '';
+                    document.getElementById('indCourseName').value = '';
+                    document.getElementById('indProgramOpted').value = '';
                     document.getElementById('indStartDate').value = '';
                     document.getElementById('indEndDate').value = '';
                     
@@ -397,7 +414,6 @@
             }
         }
 
-        // UPDATED: Segregate Batches and Individual Students in Dropdowns
         function populateModalDropdowns() {
             let optionsHTML = '<option value="">-- Select a Context --</option>';
             
