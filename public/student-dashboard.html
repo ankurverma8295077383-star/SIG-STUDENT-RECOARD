@@ -9,26 +9,34 @@
         .header { display: flex; justify-content: space-between; align-items: center; background: #28a745; color: white; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; }
         .logout-btn { background: #dc3545; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .logout-btn:hover { background: #c82333; }
-        .dashboard-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); max-width: 1000px; margin: 0 auto; }
-        .info-group { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #eee; }
-        .info-group strong { display: inline-block; width: 150px; color: #555; }
+        .dashboard-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); max-width: 1100px; margin: 0 auto; }
         
-        /* Marks Table Styles */
-        .marks-container { margin-top: 25px; overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; text-align: center; }
-        th, td { border: 1px solid #ddd; padding: 8px; white-space: nowrap; }
+        /* Updated Profile Grid Layout */
+        .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
+        .info-group { margin-bottom: 5px; }
+        .info-group strong { display: inline-block; width: 140px; color: #555; }
+        .highlight-status { color: #0056b3; font-weight: bold; font-size: 16px; }
+        
+        /* New Marks Table Styles */
+        .marks-container { margin-top: 10px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; text-align: center; }
+        th, td { border: 1px solid #ddd; padding: 10px; white-space: nowrap; }
         th { background-color: #007bff; color: white; }
-        .row-header { text-align: left; font-weight: bold; background-color: #f8f9fa; }
-        .total-row td { font-weight: bold; background-color: #e9ecef; }
+        .tech-header { text-align: left; font-weight: bold; background-color: #f8f9fa; color: #333; }
 
-        /* T and P text colors */
-        .theory-text { color: #0056b3; font-weight: bold; }
-        .practical-text { color: #28a745; font-weight: bold; }
+        .theory-text { color: #0056b3; font-size: 12px; }
+        .practical-text { color: #28a745; font-size: 12px; }
+        .grade-text { font-weight: bold; color: #dc3545; }
 
         .marksheet-section { text-align: center; margin-top: 25px; padding-top: 20px; border-top: 2px dashed #ccc; }
         .download-btn { background: #28a745; color: white; padding: 14px 28px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block; font-size: 16px; }
         .download-btn:hover { background: #218838; }
         .no-marksheet { color: red; font-weight: bold; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .profile-grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
@@ -40,16 +48,18 @@
 
     <div class="dashboard-card">
         <h3>Your Profile Details</h3>
-        <div class="info-group"><strong>Roll No:</strong> <span id="rollNo">...</span></div>
-        <div class="info-group"><strong>ID No:</strong> <span id="idNo">...</span></div>
-        <div class="info-group"><strong>Course:</strong> <span id="courseName">...</span></div>
-        <div class="info-group"><strong>Mobile:</strong> <span id="mobileNo">...</span></div>
-        <div class="info-group"><strong>Batch Duration:</strong> <span id="duration">...</span></div>
+        <div class="profile-grid">
+            <div class="info-group"><strong>Roll No:</strong> <span id="rollNo">...</span></div>
+            <div class="info-group"><strong>ID No:</strong> <span id="idNo">...</span></div>
+            <div class="info-group"><strong>Course:</strong> <span id="courseName">...</span></div>
+            <div class="info-group"><strong>Mobile:</strong> <span id="mobileNo">...</span></div>
+            <div class="info-group"><strong>Batch Duration:</strong> <span id="duration">...</span></div>
+            <div class="info-group"><strong>Placement Status:</strong> <span id="placementStatus" class="highlight-status">...</span></div>
+        </div>
 
         <div class="marks-container">
             <h3>Academic Performance</h3>
             <table id="studentMarksTable">
-                <!-- JS Inject Karega basis on enrolledTechs -->
                 <tr><td>Loading Matrix...</td></tr>
             </table>
         </div>
@@ -77,56 +87,64 @@
                 const student = await response.json();
 
                 if (response.ok) {
-                    // Profile Data
+                    // Profile Data Mapping
                     document.getElementById('studentName').innerText = student.name;
                     document.getElementById('rollNo').innerText = student.rollNo;
                     document.getElementById('idNo').innerText = student.idNo || 'N/A';
                     document.getElementById('courseName').innerText = student.courseName || 'N/A';
                     document.getElementById('mobileNo').innerText = student.mobileNo || 'N/A';
                     document.getElementById('duration').innerText = `${student.startDate || '-'} to ${student.endDate || '-'}`;
+                    document.getElementById('placementStatus').innerText = student.placementStatus || 'Pending';
 
                     // Dynamic Table Generation based on enrolledTechs
                     const defaultTechs = ['gis', 'rs', 'lidar', 'pht', 'drone', 'gps', 'webgis', 'geoai', 'python'];
-                    // Agar admin ne abhi tak koi tech check nahi ki hai, toh default sab dikha do
                     const activeTechs = (student.enrolledTechs && student.enrolledTechs.length > 0) ? student.enrolledTechs : defaultTechs;
                     
-                    const units = ['u1', 'u2', 'u3', 'u4', 'u5', 'f'];
-                    const unitLabels = ['Unit 1:⏫', 'Unit 2:📈', 'Unit 3:🚀', 'Unit 4:⭐', 'Unit 5:🆙', 'Final Exam'];
+                    let tableHTML = `
+                        <thead>
+                            <tr>
+                                <th style="text-align: left;">Technology</th>
+                                <th>Mid-Term (T|P)</th>
+                                <th>Final Exam (T|P)</th>
+                                <th>Viva</th>
+                                <th>Attendance</th>
+                                <th>Reports</th>
+                                <th>Final Result</th>
+                                <th>Grade</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                    `;
 
-                    // Thead build karna
-                    let tableHTML = `<thead><tr><th style="text-align: left;">Technology / Unit</th>`;
-                    activeTechs.forEach(t => {
-                        tableHTML += `<th>${t.toUpperCase()}</th>`;
-                    });
-                    tableHTML += `</tr></thead><tbody>`;
-
-                    // Tbody build karna
-                    units.forEach((unit, i) => {
-                        tableHTML += `<tr class="${unit === 'f' ? 'total-row' : ''}">`;
-                        tableHTML += `<td class="row-header">${unitLabels[i]}</td>`;
+                    // Generate rows for each active technology
+                    activeTechs.forEach(tech => {
+                        let marks = { midTermT: 0, midTermP: 0, finalT: 0, finalP: 0, viva: 0, attendance: 0, reports: 0, finalResult: 0, grade: "-" };
                         
-                        activeTechs.forEach(tech => {
-                            const dbKey = `${unit}_${tech}`; 
-                            let tVal = 0, pVal = 0;
-
-                            if (student.marks) {
-                                let markObj = null;
-                                if (student.marks instanceof Map || typeof student.marks.get === 'function') {
-                                    markObj = student.marks.get(dbKey);
-                                } else {
-                                    markObj = student.marks[dbKey];
-                                }
-                                if (markObj) {
-                                    tVal = markObj.theory !== undefined ? markObj.theory : 0;
-                                    pVal = markObj.practical !== undefined ? markObj.practical : 0;
-                                }
+                        if (student.marks) {
+                            let markObj = null;
+                            if (student.marks instanceof Map || typeof student.marks.get === 'function') {
+                                markObj = student.marks.get(tech);
+                            } else {
+                                markObj = student.marks[tech];
                             }
-                            tableHTML += `<td><span class="theory-text" title="Theory">${tVal} (T)</span> | <span class="practical-text" title="Practical">${pVal} (P)</span></td>`;
-                        });
-                        tableHTML += `</tr>`;
+                            if (markObj) marks = { ...marks, ...markObj };
+                        }
+
+                        tableHTML += `
+                            <tr>
+                                <td class="tech-header">${tech.toUpperCase()}</td>
+                                <td><span class="theory-text">${marks.midTermT} (T)</span> | <span class="practical-text">${marks.midTermP} (P)</span></td>
+                                <td><span class="theory-text">${marks.finalT} (T)</span> | <span class="practical-text">${marks.finalP} (P)</span></td>
+                                <td><strong>${marks.viva}</strong></td>
+                                <td><strong>${marks.attendance}</strong></td>
+                                <td><strong>${marks.reports}</strong></td>
+                                <td><strong style="color:#007bff;">${marks.finalResult}</strong></td>
+                                <td class="grade-text">${marks.grade || '-'}</td>
+                            </tr>
+                        `;
                     });
-                    tableHTML += `</tbody>`;
                     
+                    tableHTML += `</tbody>`;
                     document.getElementById('studentMarksTable').innerHTML = tableHTML;
 
                     // Direct Download Marksheet Option
