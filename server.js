@@ -107,13 +107,20 @@ app.post('/api/add-student', authenticateAdmin, async (req, res) => {
     }
 });
 
-// 4. Kisi specific batch ke students fetch karne ka API
-app.get('/api/students/:batchId', async (req, res) => {
+// 4. Update Student Profile Details API
+app.post('/api/update-student-profile/:studentId', authenticateAdmin, async (req, res) => {
     try {
-        const students = await Student.find({ batchId: req.params.batchId }).sort({ createdAt: -1 });
-        res.status(200).json(students);
+        // Roll No ko payload se hata diya hai taaki wo update na ho sake
+        const { name, idNo, courseName, mobileNo, programOpted, startDate, endDate } = req.body;
+        
+        await Student.findByIdAndUpdate(
+            req.params.studentId,
+            { name, idNo, courseName, mobileNo, programOpted, startDate, endDate },
+            { new: true, runValidators: true }
+        );
+        res.status(200).json({ message: "Student profile updated successfully" });
     } catch (error) {
-        res.status(500).json({ error: "Students fetch nahi ho paye" });
+        res.status(500).json({ error: "Profile update fail ho gayi" });
     }
 });
 
