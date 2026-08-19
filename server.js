@@ -10,12 +10,12 @@ const Student = require('./models/Student');
 const Admin = require('./models/Admin');
 const upload = require('./upload'); // Cloudinary upload setup
 
-// Vault Routes Import (Naya Addition)
+// Vault Routes Import
 const vaultRoutes = require('./routes/vault');
 
 const app = express();
-app.use(express.json()); // JSON data accept karne ke liye
-app.use(express.static('public')); // Frontend folder ko host karne ke liye 
+app.use(express.json()); 
+app.use(express.static('public')); 
 
 const PORT = process.env.PORT || 5000;
 
@@ -25,7 +25,7 @@ app.get('/', (req, res) => {
 });
 
 // ==========================================
-// SECURITY MIDDLEWARE (Taala)
+// SECURITY MIDDLEWARE
 // ==========================================
 const authenticateAdmin = (req, res, next) => {
     const token = req.header('Authorization');
@@ -137,18 +137,19 @@ app.post('/api/upload-marksheet/:studentId', authenticateAdmin, upload.single('m
     }
 });
 
-// 6. Update Student Marks & Enrolled Techs API (Updated for Checkboxes)
+// 6. Update Student Marks, Techs & Placement API (UPDATED FOR NEW MATRIX)
 app.post('/api/update-marks/:studentId', authenticateAdmin, async (req, res) => {
     try {
         await Student.findByIdAndUpdate(
             req.params.studentId,
             { 
                 marks: req.body.marks,
-                enrolledTechs: req.body.enrolledTechs // Naya field yahan save hoga
+                enrolledTechs: req.body.enrolledTechs,
+                placementStatus: req.body.placementStatus // Ye yahan add kiya hai
             },
             { new: true }
         );
-        res.status(200).json({ message: "Marks and Technologies successfully updated" });
+        res.status(200).json({ message: "Academic Record successfully updated" });
     } catch (error) {
         res.status(500).json({ error: "Update fail ho gaya" });
     }
@@ -157,7 +158,6 @@ app.post('/api/update-marks/:studentId', authenticateAdmin, async (req, res) => 
 // ==========================================
 // VAULT APIs (PDF Uploads & Management)
 // ==========================================
-// Naye Vault Routes ko connect karna aur Admin authentication lagana
 app.use('/api/vault', authenticateAdmin, vaultRoutes);
 
 
