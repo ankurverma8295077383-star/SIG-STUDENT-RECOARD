@@ -10,7 +10,7 @@
         .back-btn { background: #6c757d; color: white; padding: 8px 15px; text-decoration: none; border-radius: 4px; }
         .form-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 15px; }
-        input[type="text"] { padding: 10px; border: 1px solid #ccc; border-radius: 4px; width: 90%; }
+        input[type="text"], input[type="number"] { padding: 10px; border: 1px solid #ccc; border-radius: 4px; width: 90%; }
         button { cursor: pointer; background: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 4px; font-weight: bold; }
         button:hover { background: #0056b3; }
         table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
@@ -19,27 +19,19 @@
         .upload-btn { background: #28a745; padding: 5px 10px; font-size: 12px; border: none; cursor: pointer; border-radius: 4px; margin-top: 5px;}
         .marks-btn { background: #ffc107; padding: 5px 10px; font-size: 12px; color: black; border: none; cursor: pointer; border-radius: 4px; margin-top: 5px;}
         .delete-btn { background: #dc3545; color: white; border: none; padding: 5px 10px; font-size: 12px; border-radius: 4px; margin-top: 5px; cursor: pointer; }
-        .delete-btn:hover { background: #c82333; }
         
         /* Modal Config */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
-        .modal-content { background: white; max-width: 1200px; margin: 50px auto; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); overflow-x: auto; }
+        .modal-content { background: white; max-width: 95%; margin: 30px auto; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); overflow-x: auto; max-height: 90vh; overflow-y: auto;}
         .close-btn { background: #dc3545; margin-top: 15px; }
         .save-marks-btn { background: #28a745; width: 100%; font-size: 16px; margin-top: 15px; }
         
-        /* Modal Inner Table */
-        #marksInputTable { width: 100%; border-collapse: collapse; text-align: center; font-size: 12px; }
-        #marksInputTable th { background: #343a40; color: white; padding: 8px; }
-        #marksInputTable td { padding: 5px; }
-        
-        /* Cell Layout for T and P */
-        .cell-container { display: flex; justify-content: center; align-items: center; gap: 4px; }
-        .input-wrapper { display: flex; align-items: center; gap: 2px; }
-        .input-label { font-size: 10px; font-weight: bold; color: #555; }
-        .grid-input { width: 35px; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px; font-size: 11px; }
-        
-        /* Tech Checkbox Header */
-        .tech-header-label { display: flex; align-items: center; gap: 5px; justify-content: center; cursor: pointer; font-size: 11px;}
+        /* New Matrix Table styling */
+        #marksInputTable { width: 100%; border-collapse: collapse; text-align: center; font-size: 12px; min-width: 1000px; }
+        #marksInputTable th { background: #343a40; color: white; padding: 8px; border: 1px solid #555; }
+        #marksInputTable td { padding: 5px; border: 1px solid #ddd; }
+        .grid-input { width: 50px; padding: 6px; text-align: center; border: 1px solid #ccc; border-radius: 3px; font-size: 12px; }
+        .tech-header-label { display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 12px; font-weight: bold;}
     </style>
 </head>
 <body>
@@ -83,15 +75,22 @@
 
     <input type="file" id="fileInput" style="display: none;" accept=".pdf, .jpg, .jpeg, .png">
 
-    <!-- Advanced Marks Modal (Updated for Theory, Practical & Checkboxes) -->
+    <!-- Advanced Marks Modal (Subject-Wise Format) -->
     <div id="marksModal" class="modal">
         <div class="modal-content">
-            <h3>Update Academic Marks Matrix (Theory & Practical)</h3>
-            <p style="font-size:12px; color:gray;">Uncheck the technologies below to hide them from the student's dashboard.</p>
+            <h3>Update Academic Performance</h3>
+            
+            <div style="margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 5px; border-left: 4px solid #007bff;">
+                <label style="font-weight: bold; margin-right: 10px;">Overall Placement Status:</label>
+                <input type="text" id="overallPlacementStatus" placeholder="e.g., Placed in TCS, Pending" style="width: 250px;">
+                <p style="font-size:11px; color:gray; margin-top:5px;">Uncheck subjects below to hide them from the student's dashboard.</p>
+            </div>
+
             <table id="marksInputTable">
                 <!-- JS Inject -->
             </table>
-            <button class="save-marks-btn" onclick="submitMarks()">Save All Marks to Database</button>
+            
+            <button class="save-marks-btn" onclick="submitMarks()">Save All Records to Database</button>
             <button class="close-btn" onclick="closeMarksModal()">Cancel</button>
         </div>
     </div>
@@ -105,41 +104,53 @@
         if (!batchId) window.location.href = '/';
         document.getElementById('batchTitle').innerText = `Students of ${urlParams.get('batchName')}`;
         
-        const units = ['u1', 'u2', 'u3', 'u4', 'u5', 'f'];
-        const unitLabels = ['Unit 1', 'Unit 2', 'Unit 3', 'Unit 4', 'Unit 5', 'Final'];
         const techs = ['gis', 'rs', 'lidar', 'pht', 'drone', 'gps', 'webgis', 'geoai', 'python'];
 
-        // Updated Table Generator to include Checkboxes and 2 inputs (Theory and Practical) per cell
         function buildMarksGrid() {
-            let tableHtml = `<tr><th>Unit / Tech</th>`;
-            techs.forEach(t => {
-                tableHtml += `<th>
-                    <label class="tech-header-label">
-                        <input type="checkbox" class="tech-toggle" id="toggle_${t}" value="${t}"> 
-                        ${t.toUpperCase()}
-                    </label>
-                </th>`;
-            });
-            tableHtml += `</tr>`;
+            let tableHtml = `
+                <thead>
+                    <tr>
+                        <th rowspan="2">Technology</th>
+                        <th colspan="2">Mid-Term Exam</th>
+                        <th colspan="2">Final Exam</th>
+                        <th rowspan="2">Viva</th>
+                        <th rowspan="2">Attendance</th>
+                        <th rowspan="2">Reports / Assign.</th>
+                        <th rowspan="2">Final Result</th>
+                        <th rowspan="2">Grade</th>
+                    </tr>
+                    <tr>
+                        <th style="font-size:10px; background:#495057;">T (30)</th>
+                        <th style="font-size:10px; background:#495057;">P (60)</th>
+                        <th style="font-size:10px; background:#495057;">T (30)</th>
+                        <th style="font-size:10px; background:#495057;">P (60)</th>
+                    </tr>
+                </thead>
+                <tbody>
+            `;
 
-            units.forEach((u, i) => {
-                tableHtml += `<tr><td style="font-weight:bold; text-align:left;">${unitLabels[i]}</td>`;
-                techs.forEach(t => {
-                    tableHtml += `<td>
-                        <div class="cell-container">
-                            <div class="input-wrapper">
-                                <span class="input-label">T</span>
-                                <input type="number" class="grid-input" id="input_t_${u}_${t}" title="Theory">
-                            </div>
-                            <div class="input-wrapper">
-                                <span class="input-label">P</span>
-                                <input type="number" class="grid-input" id="input_p_${u}_${t}" title="Practical">
-                            </div>
-                        </div>
-                    </td>`;
-                });
-                tableHtml += `</tr>`;
+            techs.forEach(t => {
+                tableHtml += `
+                    <tr>
+                        <td style="text-align: left; background:#f8f9fa;">
+                            <label class="tech-header-label">
+                                <input type="checkbox" class="tech-toggle" id="toggle_${t}" value="${t}"> 
+                                ${t.toUpperCase()}
+                            </label>
+                        </td>
+                        <td><input type="number" class="grid-input" id="midTermT_${t}"></td>
+                        <td><input type="number" class="grid-input" id="midTermP_${t}"></td>
+                        <td><input type="number" class="grid-input" id="finalT_${t}"></td>
+                        <td><input type="number" class="grid-input" id="finalP_${t}"></td>
+                        <td><input type="number" class="grid-input" id="viva_${t}"></td>
+                        <td><input type="number" class="grid-input" id="attendance_${t}"></td>
+                        <td><input type="number" class="grid-input" id="reports_${t}"></td>
+                        <td><input type="number" class="grid-input" id="finalResult_${t}"></td>
+                        <td><input type="text" class="grid-input" id="grade_${t}" style="width:50px;"></td>
+                    </tr>
+                `;
             });
+            tableHtml += `</tbody>`;
             document.getElementById('marksInputTable').innerHTML = tableHtml;
         }
         buildMarksGrid();
@@ -166,7 +177,7 @@
                         <td>${student.name}</td>
                         <td>${student.courseName || '-'}</td>
                         <td>
-                            <button class="marks-btn" onclick="openMarksModal('${student._id}')">Update Marks</button>
+                            <button class="marks-btn" onclick="openMarksModal('${student._id}')">Update Record</button>
                             <button class="upload-btn" onclick="uploadMarksheet('${student._id}')">Upload PDF</button>
                             <button style="background:#6c757d; color:white; border:none; padding:5px 10px; font-size:12px; border-radius:4px; margin-top:5px; cursor:pointer;" onclick="resetStudentPassword('${student._id}')">Reset Pass</button>
                             <button class="delete-btn" onclick="deleteStudent('${student._id}')">Delete</button>
@@ -232,56 +243,47 @@
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                const result = await response.json();
-                alert(result.message || result.error);
-            } catch (error) {
-                alert("Server Error");
-            }
+                alert((await response.json()).message || "Failed");
+            } catch (error) { alert("Server Error"); }
         }
 
         async function deleteStudent(studentId) {
             if (!confirm("Kya aap sach mein is student ka record permanently delete karna chahte hain?")) return;
-
             try {
                 const response = await fetch(`/api/delete-student/${studentId}`, {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                
-                const result = await response.json();
-                if (response.ok) {
-                    loadStudents(); 
-                } else {
-                    alert(result.error);
-                }
-            } catch (error) {
-                alert("Server error connecting to delete API.");
-            }
+                if (response.ok) loadStudents(); 
+                else alert((await response.json()).error);
+            } catch (error) { alert("API Error"); }
         }
 
         let targetMarksStudentId = null;
         
-        // Updated Modal Loader (Pulls T & P values and Checkbox States)
         function openMarksModal(studentId) {
             targetMarksStudentId = studentId;
             const student = studentsData.find(s => s._id === studentId);
             
-            // Check active technologies for this specific student
+            document.getElementById('overallPlacementStatus').value = student.placementStatus || '';
+            
             const activeTechs = (student.enrolledTechs && student.enrolledTechs.length > 0) ? student.enrolledTechs : techs;
+            
             techs.forEach(t => {
                 const cb = document.getElementById(`toggle_${t}`);
                 if (cb) cb.checked = activeTechs.includes(t);
-            });
-            
-            units.forEach(u => {
-                techs.forEach(t => {
-                    const dbKey = `${u}_${t}`;
-                    // Express fetch formats Mongoose Maps to plain JSON objects
-                    const markObj = student && student.marks ? student.marks[dbKey] : null;
-                    
-                    document.getElementById(`input_t_${u}_${t}`).value = (markObj && markObj.theory !== undefined) ? markObj.theory : '';
-                    document.getElementById(`input_p_${u}_${t}`).value = (markObj && markObj.practical !== undefined) ? markObj.practical : '';
-                });
+
+                const markObj = student && student.marks ? student.marks[t] : null;
+                
+                document.getElementById(`midTermT_${t}`).value = markObj?.midTermT !== undefined ? markObj.midTermT : '';
+                document.getElementById(`midTermP_${t}`).value = markObj?.midTermP !== undefined ? markObj.midTermP : '';
+                document.getElementById(`finalT_${t}`).value = markObj?.finalT !== undefined ? markObj.finalT : '';
+                document.getElementById(`finalP_${t}`).value = markObj?.finalP !== undefined ? markObj.finalP : '';
+                document.getElementById(`viva_${t}`).value = markObj?.viva !== undefined ? markObj.viva : '';
+                document.getElementById(`attendance_${t}`).value = markObj?.attendance !== undefined ? markObj.attendance : '';
+                document.getElementById(`reports_${t}`).value = markObj?.reports !== undefined ? markObj.reports : '';
+                document.getElementById(`finalResult_${t}`).value = markObj?.finalResult !== undefined ? markObj.finalResult : '';
+                document.getElementById(`grade_${t}`).value = markObj?.grade || '';
             });
             document.getElementById('marksModal').style.display = 'block';
         }
@@ -290,26 +292,28 @@
             document.getElementById('marksModal').style.display = 'none';
         }
 
-        // Updated Submit Logic (Builds payload for both marks and enrolledTechs)
         async function submitMarks() {
             let marksPayload = {};
             let activeTechsPayload = [];
 
-            // Grab which technologies are checked
             document.querySelectorAll('.tech-toggle:checked').forEach(cb => {
                 activeTechsPayload.push(cb.value);
             });
 
-            units.forEach(u => {
-                techs.forEach(t => {
-                    const tVal = document.getElementById(`input_t_${u}_${t}`).value;
-                    const pVal = document.getElementById(`input_p_${u}_${t}`).value;
-                    
-                    marksPayload[`${u}_${t}`] = {
-                        theory: Number(tVal) || 0,
-                        practical: Number(pVal) || 0
-                    };
-                });
+            const overallPlacement = document.getElementById('overallPlacementStatus').value;
+
+            techs.forEach(t => {
+                marksPayload[t] = {
+                    midTermT: Number(document.getElementById(`midTermT_${t}`).value) || 0,
+                    midTermP: Number(document.getElementById(`midTermP_${t}`).value) || 0,
+                    finalT: Number(document.getElementById(`finalT_${t}`).value) || 0,
+                    finalP: Number(document.getElementById(`finalP_${t}`).value) || 0,
+                    viva: Number(document.getElementById(`viva_${t}`).value) || 0,
+                    attendance: Number(document.getElementById(`attendance_${t}`).value) || 0,
+                    reports: Number(document.getElementById(`reports_${t}`).value) || 0,
+                    finalResult: Number(document.getElementById(`finalResult_${t}`).value) || 0,
+                    grade: document.getElementById(`grade_${t}`).value || ""
+                };
             });
 
             try {
@@ -321,16 +325,17 @@
                     },
                     body: JSON.stringify({ 
                         marks: marksPayload,
-                        enrolledTechs: activeTechsPayload // Naya array pass ho raha hai
+                        enrolledTechs: activeTechsPayload,
+                        placementStatus: overallPlacement
                     })
                 });
                 
                 if (response.ok) {
-                    alert("Data Saved Successfully!");
+                    alert("Record Saved Successfully!");
                     loadStudents(); 
                     closeMarksModal();
                 } else {
-                    alert("Failed to update marks");
+                    alert("Failed to update record");
                 }
             } catch (error) {
                 alert("Server Error");
