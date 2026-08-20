@@ -12,20 +12,18 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: async (req, file) => {
-        const isPdf = file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf');
+        // Blind-spot fix: Rely exclusively on extension, not mimetype.
+        const isPdf = file.originalname.toLowerCase().endsWith('.pdf');
         
-        // File ke naam se space aur special characters hatana
         const cleanName = file.originalname.split('.')[0].replace(/[^a-zA-Z0-9]/g, "_");
 
         if (isPdf) {
-            // PDF Logic: Strictly RAW + Force .pdf Extension
             return {
                 folder: 'student_marksheets',
-                resource_type: 'raw', 
-                public_id: `${cleanName}_${Date.now()}.pdf` 
+                resource_type: 'raw', // PDF ke liye strictly RAW
+                public_id: `${cleanName}_${Date.now()}.pdf`
             };
         } else {
-            // Image Logic: Auto detect + No extension required in public_id
             return {
                 folder: 'student_marksheets',
                 resource_type: 'auto',
