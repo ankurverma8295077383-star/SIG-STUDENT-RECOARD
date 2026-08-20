@@ -12,21 +12,26 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: async (req, file) => {
-        // PDF check
         const isPdf = file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf');
         
-        // Sirf file ka naam, extension nahi
+        // File ke naam se space aur special characters hatana
         const cleanName = file.originalname.split('.')[0].replace(/[^a-zA-Z0-9]/g, "_");
-        const finalName = `${cleanName}_${Date.now()}`;
 
-        return {
-            folder: 'student_marksheets',
-            // Sirf 'auto' use karo PDF aur image dono ke liye, aur format force karo
-            resource_type: 'auto',
-            public_id: finalName,
-            // Agar PDF hai toh format 'pdf' set karo, warna upload default rehne do
-            format: isPdf ? 'pdf' : undefined 
-        };
+        if (isPdf) {
+            // PDF Logic: Strictly RAW + Force .pdf Extension
+            return {
+                folder: 'student_marksheets',
+                resource_type: 'raw', 
+                public_id: `${cleanName}_${Date.now()}.pdf` 
+            };
+        } else {
+            // Image Logic: Auto detect + No extension required in public_id
+            return {
+                folder: 'student_marksheets',
+                resource_type: 'auto',
+                public_id: `${cleanName}_${Date.now()}`
+            };
+        }
     },
 });
 
