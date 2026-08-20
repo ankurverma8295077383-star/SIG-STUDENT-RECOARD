@@ -54,6 +54,11 @@
     <div class="header">
         <h1>Admin Dashboard</h1>
         <div class="header-actions">
+            <!-- Naye Backup Buttons -->
+            <button style="background:#28a745; color:white; border:none; padding:10px 15px; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="downloadBackup('csv')">📥 Download CSV</button>
+            <button style="background:#343a40; color:white; border:none; padding:10px 15px; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="downloadBackup('json')">📥 Download JSON</button>
+
+            <!-- Purane Buttons -->
             <button class="btn-primary" onclick="openAnsModal()">Upload Answer Sheets</button>
             <button class="btn-purple" onclick="openManualMarksModal()">Upload Manual Marksheets</button>
             <button class="btn-primary" style="background:#17a2b8;" onclick="openVaultModal()">Manage Vault (View/Delete)</button>
@@ -293,14 +298,12 @@
             const idNo = document.getElementById('indIdNo').value;
             const mobileNo = document.getElementById('indMobileNo').value;
             
-            // New logic for extra fields
             const courseName = document.getElementById('indCourseName').value;
             const programOpted = document.getElementById('indProgramOpted').value;
 
             const startDate = document.getElementById('indStartDate').value;
             const endDate = document.getElementById('indEndDate').value;
 
-            // Updated validation alert
             if (!rollNo || !name || !idNo || !mobileNo || !startDate || !endDate) {
                 return alert("Required fields (Roll No, Name, ID No, Mobile No, Start Date, End Date) must be filled!");
             }
@@ -327,7 +330,6 @@
                 if (response.ok) {
                     alert("Individual Student Added Successfully!");
                     
-                    // Clear inputs after successful submission
                     document.getElementById('indRollNo').value = '';
                     document.getElementById('indName').value = '';
                     document.getElementById('indIdNo').value = '';
@@ -589,6 +591,68 @@
                 }
             } catch (error) {
                 alert("Server error during deletion");
+            }
+        }
+
+        // ==========================================
+        // DATA BACKUP & EXPORT LOGIC
+        // ==========================================
+        async function downloadBackup(format) {
+            try {
+                const response = await fetch('/api/admin/export-data', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!response.ok) throw new Error("Failed to fetch backup data");
+                const data = await response.json();
+
+                if (data.length === 0) return alert("Database khali hai, export karne ke liye kuch nahi hai.");
+
+                if (format === 'json') {
+                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+                    const downloadAnchorNode = document.createElement('a');
+                    downloadAnchorNode.setAttribute("href", dataStr);
+                    downloadAnchorNode.setAttribute("download", `Skyline_Backup_${new Date().toISOString().split('T')[0]}.json`);
+                    document.body.appendChild(downloadAnchorNode);
+                    downloadAnchorNode.click();
+                    downloadAnchorNode.remove();
+                } 
+                else if (format === 'csv') {
+                    const csvRows = [];
+                    const headers = ['Roll No', 'Name', 'ID No', 'Course', 'Mobile', 'Program Opted', 'Start Date', 'End Date', 'Placement Status', 'Batch/Category', 'Enrolled Techs', 'Marks & Grades (JSON)', 'Marksheet File URL'];
+                    csvRows.push(headers.join(','));
+
+                    for (const row of data) {
+                        const values = [
+                            row.rollNo || '',
+                            row.name || '',
+                            row.idNo || '',
+                            row.courseName || '',
+                            row.mobileNo || '',
+                            row.programOpted || '',
+                            row.startDate || '',
+                            row.endDate || '',
+                            row.placementStatus || '',
+                            row.batchId ? row.batchId.batchName : 'Individual',
+                            row.enrolledTechs ? row.enrolledTechs.join('; ') : '',
+                            row.marks ? JSON.stringify(row.marks).replace(/"/g, '""') : '{}',
+                            row.marksheetUrl || ''
+                        ];
+                        const escapedValues = values.map(v => `"${String(v).replace(/"/g, '""')}"`);
+                        csvRows.push(escapedValues.join(','));
+                    }
+
+                    const csvString = csvRows.join('\n');
+                    const blob = new Blob([csvString], { type: 'text/csv' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.setAttribute('href', url);
+                    a.setAttribute('download', `Skyline_Backup_${new Date().toISOString().split('T')[0]}.csv`);
+                    a.click();
+                }
+            } catch (error) {
+                alert("Backup download fail ho gaya. Console check karein.");
+                console.error(error);
             }
         }
     </script>
