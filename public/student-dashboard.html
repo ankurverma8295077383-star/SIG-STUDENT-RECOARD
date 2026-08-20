@@ -4,20 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard - Skyline Institute</title>
+    
+    <!-- PDF Generation Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
     <style>
         body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 20px; margin: 0; }
         .header { display: flex; justify-content: space-between; align-items: center; background: #28a745; color: white; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; }
         .logout-btn { background: #dc3545; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .logout-btn:hover { background: #c82333; }
-        .dashboard-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); max-width: 1100px; margin: 0 auto; }
+        .dashboard-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); max-width: 1100px; margin: 0 auto; position: relative; }
         
-        /* Updated Profile Grid Layout */
+        /* Profile Grid Layout */
         .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
         .info-group { margin-bottom: 5px; }
         .info-group strong { display: inline-block; width: 140px; color: #555; }
         .highlight-status { color: #0056b3; font-weight: bold; font-size: 16px; }
         
-        /* New Marks Table Styles */
+        /* Marks Table Styles */
         .marks-container { margin-top: 10px; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; text-align: center; }
         th, td { border: 1px solid #ddd; padding: 10px; white-space: nowrap; }
@@ -29,9 +34,16 @@
         .grade-text { font-weight: bold; color: #dc3545; }
 
         .marksheet-section { text-align: center; margin-top: 25px; padding-top: 20px; border-top: 2px dashed #ccc; }
-        .download-btn { background: #28a745; color: white; padding: 14px 28px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block; font-size: 16px; }
+        .download-btn { background: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block; font-size: 15px; cursor: pointer; border: none; }
         .download-btn:hover { background: #218838; }
-        .no-marksheet { color: red; font-weight: bold; }
+        .digital-btn { background: #17a2b8; }
+        .digital-btn:hover { background: #138496; }
+        .no-marksheet { color: red; font-weight: bold; font-size: 14px; }
+
+        /* PDF header jo sirf print karte time dikhega */
+        #pdf-header { display: none; text-align: center; margin-bottom: 20px; }
+        #pdf-header h1 { margin: 0; color: #0056b3; }
+        #pdf-header p { margin: 5px 0 0 0; color: #555; }
 
         /* Responsive */
         @media (max-width: 768px) {
@@ -46,7 +58,15 @@
         <button class="logout-btn" onclick="logoutStudent()">Logout</button>
     </div>
 
-    <div class="dashboard-card">
+    <!-- Is area ko hum PDF mein convert karenge -->
+    <div class="dashboard-card" id="digitalMarksheetContent">
+        
+        <div id="pdf-header">
+            <h1>Skyline Institute of Geo-Informatics</h1>
+            <p>Digital Academic Scorecard</p>
+            <hr style="border-top: 2px solid #007bff; margin-top:10px;">
+        </div>
+
         <h3>Your Profile Details</h3>
         <div class="profile-grid">
             <div class="info-group"><strong>Roll No:</strong> <span id="rollNo">...</span></div>
@@ -147,18 +167,22 @@
                     tableHTML += `</tbody>`;
                     document.getElementById('studentMarksTable').innerHTML = tableHTML;
 
-                    // Direct Download Marksheet Option
+                    // UI injection for Both Download Buttons
                     const marksheetSec = document.getElementById('marksheetSection');
+                    let buttonsHTML = `<h3>Your Final Result Marksheet</h3><div style="margin: 15px 0; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; align-items: center;">`;
+
                     if (student.marksheetUrl) {
-                        marksheetSec.innerHTML = `
-                            <h3>Your Final Result Marksheet</h3>
-                            <div style="margin: 15px 0;">
-                                <a href="${student.marksheetUrl}" target="_blank" download class="download-btn">📥Download Marksheet</a>
-                            </div>
-                        `;
+                        buttonsHTML += `<a href="${student.marksheetUrl}" target="_blank" download class="download-btn">📥 Download Manual Marksheet</a>`;
                     } else {
-                        marksheetSec.innerHTML = `<p class="no-marksheet">Marksheet not uploaded yet. Please contact administration.</p>`;
+                        buttonsHTML += `<span class="no-marksheet">Manual Marksheet Not Uploaded</span>`;
                     }
+
+                    // Digital Marksheet button hamesha available rahega
+                    buttonsHTML += `<button onclick="generateDigitalMarksheet()" class="download-btn digital-btn">🖥️ Download Digital Marksheet</button>`;
+                    buttonsHTML += `</div>`;
+                    
+                    marksheetSec.innerHTML = buttonsHTML;
+
                 } else {
                     alert(student.error || "Session expired.");
                     logoutStudent();
@@ -167,6 +191,43 @@
                 alert("Error loading profile.");
             }
         };
+
+        // PDF Generation Logic
+        async function generateDigitalMarksheet() {
+            const { jsPDF } = window.jspdf;
+            const captureArea = document.getElementById('digitalMarksheetContent');
+            const buttonsSection = document.getElementById('marksheetSection');
+            const pdfHeader = document.getElementById('pdf-header');
+
+            // Download buttons ko PDF se hide karna aur title dikhana
+            buttonsSection.style.display = 'none';
+            pdfHeader.style.display = 'block';
+
+            try {
+                const canvas = await html2canvas(captureArea, { scale: 2, useCORS: true });
+                const imgData = canvas.toDataURL('image/png');
+                
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const imgProps = pdf.getImageProperties(imgData);
+                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+                // Image ko top thoda margin dekar add karna
+                pdf.addImage(imgData, 'PNG', 0, 10, pdfWidth, pdfHeight);
+                
+                // Roll No. ke hisab se file ka naam set karna
+                const rollNo = document.getElementById('rollNo').innerText || 'Student';
+                pdf.save(`Digital_Marksheet_${rollNo}.pdf`);
+
+            } catch (error) {
+                console.error("PDF generation failed", error);
+                alert("Failed to generate Digital Marksheet. Try again.");
+            } finally {
+                // UI wapas normal karna
+                buttonsSection.style.display = 'block';
+                pdfHeader.style.display = 'none';
+            }
+        }
     </script>
 </body>
 </html>
