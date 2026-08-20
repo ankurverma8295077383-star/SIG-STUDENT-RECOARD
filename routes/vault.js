@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const upload = require('../upload'); // Apni upload.js ka correct path do
+const upload = require('../upload'); 
 const Vault = require('../models/Vault');
 const cloudinary = require('cloudinary').v2;
 
@@ -14,7 +14,7 @@ router.post('/upload-ans', upload.single('file'), async (req, res) => {
             subject, 
             unit,
             fileUrl: req.file.path, 
-            publicId: req.file.filename 
+            publicId: req.file.filename || req.file.public_id 
         });
         await newFile.save();
         res.status(200).json({ message: 'Answer sheet safely uploaded' });
@@ -32,7 +32,7 @@ router.post('/upload-marksheet', upload.single('file'), async (req, res) => {
             batchId, 
             fileType: 'marksheet',
             fileUrl: req.file.path, 
-            publicId: req.file.filename
+            publicId: req.file.filename || req.file.public_id
         });
         await newFile.save();
         res.status(200).json({ message: 'Marksheet securely vaulted' });
@@ -58,8 +58,10 @@ router.delete('/delete/:id', async (req, res) => {
         const file = await Vault.findById(req.params.id);
         if (!file) return res.status(404).json({ error: 'File not found' });
         
-        // Cloudinary se destroy karo
-        await cloudinary.uploader.destroy(file.publicId);
+        // Blind-spot fix: Explicitly define resource_type for Cloudinary destroy
+        const isPdf = file.publicId.toLowerCase().endsWith('.pdf');
+        await cloudinary.uploader.destroy(file.publicId, { resource_type: isPdf ? 'raw' : 'image' });
+        
         // MongoDB se delete karo
         await Vault.findByIdAndDelete(req.params.id);
         
