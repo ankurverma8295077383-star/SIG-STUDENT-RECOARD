@@ -157,6 +157,17 @@ app.post('/api/update-marks/:studentId', authenticateAdmin, async (req, res) => 
     }
 });
 
+// 8. Export Full Database Backup API
+app.get('/api/admin/export-data', authenticateAdmin, async (req, res) => {
+    try {
+        // Saare students aur unke batch ka naam fetch karega
+        const students = await Student.find().populate('batchId', 'batchName').lean();
+        res.status(200).json(students);
+    } catch (error) {
+        res.status(500).json({ error: "Data export fail ho gaya" });
+    }
+});
+
 app.use('/api/vault', authenticateAdmin, vaultRoutes);
 
 // ==========================================
