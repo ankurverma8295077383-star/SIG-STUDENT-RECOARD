@@ -1,22 +1,24 @@
-const multer = require('multer');
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const multer = require('multer');
 require('dotenv').config();
 
-// Cloudinary connection setup
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Storage settings for clean preview and PDF rendering
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
-    params: {
-        folder: 'student_marksheets',
-        resource_type: 'auto', // 'auto' use karne se Cloudinary PDF aur images ko properly render karta hai
-        allowed_formats: ['jpg', 'png', 'jpeg', 'pdf']
+    params: async (req, file) => {
+        // PDF ko 'raw' document set karega, baaki (images) ko 'auto'
+        const isPdf = file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf');
+        
+        return {
+            folder: 'student_marksheets',
+            resource_type: isPdf ? 'raw' : 'auto'
+        };
     },
 });
 
