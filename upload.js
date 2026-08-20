@@ -12,12 +12,16 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: async (req, file) => {
-        // PDF ko 'raw' document set karega, baaki (images) ko 'auto'
         const isPdf = file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf');
         
+        // File ka naam clean karna aur extension forcefully lagana
+        const cleanName = file.originalname.split('.')[0].replace(/[^a-zA-Z0-9]/g, "_");
+        const finalName = isPdf ? `${cleanName}_${Date.now()}.pdf` : `${cleanName}_${Date.now()}`;
+
         return {
             folder: 'student_marksheets',
-            resource_type: isPdf ? 'raw' : 'auto'
+            resource_type: isPdf ? 'raw' : 'auto',
+            public_id: finalName // Ye line ensure karegi ki URL aur download dono me .pdf aaye
         };
     },
 });
