@@ -60,7 +60,6 @@
 
             <!-- Purane Buttons -->
             <button class="btn-primary" onclick="openAnsModal()">Upload Answer Sheets</button>
-            <button class="btn-purple" onclick="openManualMarksModal()">Upload Manual Marksheets</button>
             <button class="btn-primary" style="background:#17a2b8;" onclick="openVaultModal()">Manage Vault (View/Delete)</button>
             <button class="logout-btn" onclick="logoutAdmin()">Logout</button>
         </div>
@@ -151,25 +150,6 @@
                 <input type="file" id="ansFileInput" accept=".pdf">
             </div>
             <button class="btn-success" onclick="uploadAnswerSheet()">Upload Now</button>
-            <button class="logout-btn" style="margin-left:10px;" onclick="closeModals()">Cancel</button>
-        </div>
-    </div>
-
-    <!-- Modal 2: Manual Marksheets Vault -->
-    <div id="manualMarksModal" class="modal">
-        <div class="modal-content">
-            <h3>Upload Manual Marksheets</h3>
-            <div class="form-group">
-                <label>Select Target Context</label>
-                <select id="manualBatchSelect">
-                    <option value="">-- Loading Targets --</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Upload PDF</label>
-                <input type="file" id="manualFileInput" accept=".pdf,.zip">
-            </div>
-            <button class="btn-purple" onclick="uploadManualMarksheet()">Store in Vault</button>
             <button class="logout-btn" style="margin-left:10px;" onclick="closeModals()">Cancel</button>
         </div>
     </div>
@@ -436,17 +416,14 @@
             }
 
             document.getElementById('ansBatchSelect').innerHTML = optionsHTML;
-            document.getElementById('manualBatchSelect').innerHTML = optionsHTML;
             document.getElementById('vaultBatchSelect').innerHTML = optionsHTML;
         }
 
         function openAnsModal() { document.getElementById('ansModal').style.display = 'block'; }
-        function openManualMarksModal() { document.getElementById('manualMarksModal').style.display = 'block'; }
         function openVaultModal() { document.getElementById('vaultModal').style.display = 'block'; }
         
         function closeModals() {
             document.getElementById('ansModal').style.display = 'none';
-            document.getElementById('manualMarksModal').style.display = 'none';
             document.getElementById('vaultModal').style.display = 'none';
             document.getElementById('vaultFilesContainer').innerHTML = '<p style="color: gray; font-size: 14px;">Select a batch or student to view uploaded files.</p>';
             document.getElementById('vaultBatchSelect').value = "";
@@ -475,35 +452,6 @@
                 
                 if(response.ok) {
                     alert("Answer Sheet Uploaded Successfully!");
-                    closeModals();
-                    fileInput.value = ''; 
-                } else {
-                    alert((await response.json()).error);
-                }
-            } catch(error) {
-                alert("Upload failed due to server error.");
-            }
-        }
-
-        async function uploadManualMarksheet() {
-            const batchId = document.getElementById('manualBatchSelect').value;
-            const fileInput = document.getElementById('manualFileInput');
-            
-            if(!batchId || !fileInput.files[0]) return alert("Please select a target and attach a file!");
-
-            const formData = new FormData();
-            formData.append('batchId', batchId);
-            formData.append('file', fileInput.files[0]);
-
-            try {
-                const response = await fetch('/api/vault/upload-marksheet', {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` },
-                    body: formData
-                });
-                
-                if(response.ok) {
-                    alert("Marksheet Stored in Vault Successfully!");
                     closeModals();
                     fileInput.value = ''; 
                 } else {
